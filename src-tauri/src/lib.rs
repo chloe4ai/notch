@@ -92,18 +92,31 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            // Force a normal Dock app. A tray icon + a window that hides on
+            // close can otherwise leave macOS treating this as a Dock-less
+            // accessory app — which is why the icon didn't appear in the Dock.
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Regular);
             build_main(app.handle())?;
             setup_tray(app.handle())?;
             Ok(())
         })
         // Menu-bar app behavior: closing the window hides it (keeps the tray
-        // icon alive) instead of quitting. Quit from the tray menu.
+        // icon + Dock tile alive) instead of quitting. Quit from the tray menu.
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 let _ = window.hide();
                 api.prevent_close();
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Clicking the Dock icon when the window is hidden re-opens it.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                show_main(app);
+            }
+            let _ = (app, &event);
+        });
 }
