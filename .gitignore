@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+
+# Secrets / local config
+.env
+.env.local
+
+# Personal data — journals AND screenshots of your screen. Never commit.
+# (Keep the dir so the app has somewhere to write.)
+data/*
+!data/.gitkeep
+
+# Rust / Tauri build artifacts (target alone is ~2GB)
+src-tauri/target
+src-tauri/gen
+
+# Misc
+*.log
+.DS_Store

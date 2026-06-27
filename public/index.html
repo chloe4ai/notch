@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>日迹</title>
+  <style>
+    :root {
+      --bg: #faf8f5;
+      --panel: #ffffff;
+      --ink: #1a1a1a;
+      --muted: #6b6b6b;
+      --line: #e8e4dd;
+      --accent: #c75d3a;
+      --accent-soft: #fbeee7;
+      --good: #2e7d4f;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 28px 24px 80px; }
+    header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 24px;
+    }
+    header h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+    header .meta { font-size: 12px; color: var(--muted); }
+    header .meta code { background: #f0ece6; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+    }
+    .card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+      font: inherit;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row + .row { margin-top: 8px; }
+    button {
+      font: inherit;
+      padding: 8px 14px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: #fff;
+      cursor: pointer;
+    }
+    button:hover { border-color: #c8c1b6; }
+    button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.primary:hover { filter: brightness(0.95); }
+    button.ghost { background: transparent; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    input[type="text"] {
+      flex: 1; font: inherit; padding: 8px 10px;
+      border: 1px solid var(--line); border-radius: 7px; background: #fff; outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li {
+      display: flex; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .timeline li:last-child { border-bottom: none; }
+    .timeline .ts { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 56px; }
+    .timeline .body { flex: 1; }
+    .pill {
+      display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px;
+      background: var(--accent-soft); color: var(--accent); margin-right: 6px;
+    }
+    .pill.task { background: #e7f1ec; color: var(--good); }
+    .running {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--accent-soft);
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .running .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+      animation: pulse 1.4s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+    .summary {
+      background: #fffdf8;
+      border-left: 3px solid var(--accent);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border-radius: 0 8px 8px 0;
+    }
+    .summary h3 { margin: 0 0 6px; font-size: 14px; }
+    .summary .when { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .summary pre {
+      white-space: pre-wrap; word-wrap: break-word; font: inherit;
+      margin: 0;
+    }
+    .totals { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .totals strong { color: var(--ink); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1a1a1a; color: #fff;
+      padding: 10px 14px; border-radius: 7px;
+      font-size: 13px;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>日迹 <span style="font-size:13px;color:var(--muted);font-weight:normal;letter-spacing:0;">· 一天的痕迹</span></h1>
+      <div class="meta" id="meta"></div>
+    </header>
+
+    <div class="card">
+      <h2>正在做的事</h2>
+      <div id="running-host"></div>
+      <div class="row">
+        <input type="text" id="task-name" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
+        <button class="primary" id="task-start">开始</button>
+      </div>
+      <div class="hint">开始新任务时，上一个任务会自动停下来。</div>
+    </div>
+
+    <div class="card">
+      <h2>随手记一笔</h2>
+      <textarea id="entry" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
+      <div class="row" style="margin-top: 10px;">
+        <button class="primary" id="entry-save">保存</button>
+        <button class="ghost" id="summarize">现在总结</button>
+        <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>今天</h2>
+      <div class="totals" id="totals"></div>
+      <ul class="timeline" id="timeline"></ul>
+    </div>
+
+    <div class="card">
+      <h2>小结</h2>
+      <div id="summaries"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="display:flex;align-items:center;gap:8px;">
+        活动日志
+        <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
+        <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">暂停追踪</button>
+      </h2>
+      <div id="activity-apps"></div>
+      <div id="activity-windows" style="margin-top:12px;"></div>
+      <div id="activity-screenshots" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function fmtTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    }
+    function fmtDuration(ms) {
+      if (!ms || ms < 0) return "0m";
+      const mins = Math.round(ms / 60000);
+      if (mins < 60) return mins + "m";
+      const h = Math.floor(mins / 60), m = mins % 60;
+      return m === 0 ? h + "h" : h + "h" + m + "m";
+    }
+    function toast(msg) {
+      const t = $("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove("show"), 1800);
+    }
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        method: opts.method || "GET",
+        headers: { "content-type": "application/json" },
+        body: opts.body ? JSON.stringify(opts.body) : undefined,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || res.statusText);
+      }
+      return res.json();
+    }
+
+    let state = null;
+
+    function render() {
+      // Meta line
+      const cfg = state.config;
+      $("meta").innerHTML =
+        `${state.date} · 数据 → <code>${cfg.dataDir}</code> · ` +
+        `AI：<strong>${cfg.hasLLM ? cfg.model || "已开" : "未启用"}</strong> · ` +
+        `自动小结：${cfg.schedule}`;
+
+      // Running task
+      const open = state.tasks.find((t) => t.endTs == null);
+      const host = $("running-host");
+      if (open) {
+        const elapsed = Date.now() - new Date(open.startTs).getTime();
+        host.innerHTML = `
+          <div class="running">
+            <span class="dot"></span>
+            <strong>${escapeHTML(open.name)}</strong>
+            <span style="color: var(--muted)">从 ${fmtTime(open.startTs)} 开始 · ${fmtDuration(elapsed)}</span>
+            <button id="stop-btn" style="margin-left:auto;">停下</button>
+          </div>`;
+        $("stop-btn").onclick = stopTask;
+      } else {
+        host.innerHTML = `<div class="empty">暂时没有正在进行的任务。在下面开一个。</div>`;
+      }
+
+      // Totals
+      const totalMs = state.tasks.reduce((s, t) =>
+        s + (t.durationMs || (t.endTs == null ? Date.now() - new Date(t.startTs).getTime() : 0)), 0);
+      $("totals").innerHTML = `
+        <span><strong>${state.entries.length}</strong> 条想法</span>
+        <span><strong>${state.tasks.length}</strong> 段任务</span>
+        <span>共 <strong>${fmtDuration(totalMs)}</strong></span>
+      `;
+
+      // Timeline (entries + tasks merged, newest first)
+      const items = [
+        ...state.entries.map((e) => ({ kind: "entry", ts: e.ts, data: e })),
+        ...state.tasks.flatMap((t) => {
+          const out = [{ kind: "task-start", ts: t.startTs, data: t }];
+          if (t.endTs) out.push({ kind: "task-end", ts: t.endTs, data: t });
+          return out;
+        }),
+      ].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+
+      const tl = $("timeline");
+      if (items.length === 0) {
+        tl.innerHTML = `<li class="empty">今天还没有任何记录。随手记一笔，或者开始一项任务。</li>`;
+      } else {
+        tl.innerHTML = items.map((i) => {
+          if (i.kind === "entry") {
+            return `<li>
+              <span class="ts">${fmtTime(i.ts)}</span>
+              <div class="body">${escapeHTML(i.data.text)}</div>
+            </li>`;
+          }
+          if (i.kind === "task-start") {
+            return `<li>
+              <span class="ts">${fmtTime(i.ts)}</span>
+              <div class="body"><span class="pill task">▶ 开始</span><strong>${escapeHTML(i.data.name)}</strong></div>
+            </li>`;
+          }
+          return `<li>
+            <span class="ts">${fmtTime(i.ts)}</span>
+            <div class="body"><span class="pill task">■ 结束</span>${escapeHTML(i.data.name)} <span style="color:var(--muted)">(${fmtDuration(i.data.durationMs)})</span></div>
+          </li>`;
+        }).join("");
+      }
+
+      // Summaries (newest first)
+      const sumHost = $("summaries");
+      const sums = [...state.summaries].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      if (sums.length === 0) {
+        sumHost.innerHTML = `<div class="empty">还没有小结。点「现在总结」即时生成，或者等到 12:00 / 15:00 / 18:00 自动出。</div>`;
+      } else {
+        sumHost.innerHTML = sums.map((s) => `
+          <div class="summary">
+            <h3>${escapeHTML(slotLabel(s.slot))}</h3>
+            <div class="when">${fmtTime(s.ts)} · ${s.model || "纯聚合（无 AI）"}</div>
+            <pre>${escapeHTML(s.text)}</pre>
+          </div>
+        `).join("");
+      }
+    }
+
+    function slotLabel(slot) {
+      return ({
+        noon: "午间小结",
+        afternoon: "下午小结",
+        evening: "晚间收尾",
+        adhoc: "即时小结",
+      }[slot] || "小结");
+    }
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    async function refresh() {
+      state = await api("/api/today");
+      render();
+    }
+
+    async function saveEntry() {
+      const ta = $("entry");
+      const text = ta.value.trim();
+      if (!text) return;
+      $("entry-save").disabled = true;
+      try {
+        await api("/api/entries", { method: "POST", body: { text } });
+        ta.value = "";
+        await refresh();
+        toast("已记下");
+      } catch (err) {
+        toast("出错了：" + err.message);
+      } finally {
+        $("entry-save").disabled = false;
+        ta.focus();
+      }
+    }
+
+    async function startTask() {
+      const name = $("task-name").value.trim();
+      if (!name) return;
+      try {
+        await api("/api/tasks/start", { method: "POST", body: { name } });
+        $("task-name").value = "";
+        await refresh();
+        toast("任务已开始");
+      } catch (err) { toast("Failed: " + err.message); }
+    }
+
+    async function stopTask() {
+      try {
+        await api("/api/tasks/stop", { method: "POST" });
+        await refresh();
+        toast("任务已停");
+      } catch (err) { toast("Failed: " + err.message); }
+    }
+
+    async function summarize() {
+      const btn = $("summarize");
+      btn.disabled = true;
+      btn.textContent = "整理中…";
+      try {
+        await api("/api/summarize", { method: "POST", body: { slot: "adhoc" } });
+        await refresh();
+        toast("小结生成");
+      } catch (err) {
+        toast("出错了：" + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "现在总结";
+      }
+    }
+
+    // Wire up
+    $("entry-save").onclick = saveEntry;
+    $("entry").addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); saveEntry(); }
+    });
+    $("task-start").onclick = startTask;
+    $("task-name").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); startTask(); }
+    });
+    $("summarize").onclick = summarize;
+
+    // Auto-tick the running-task elapsed time once a minute.
+    setInterval(() => { if (state) render(); }, 60 * 1000);
+
+    // Sum raw activity segments (one per focus stretch) into totals by name,
+    // sorted by time spent — the actually-useful view.
+    function aggregate(records, keyOf) {
+      const totals = new Map();
+      for (const r of records || []) {
+        const k = keyOf(r);
+        if (!k) continue;
+        totals.set(k, (totals.get(k) || 0) + (r.durationMs || 0));
+      }
+      return [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    }
+
+    let trackerEnabled = true;
+
+    function renderTrackerStatus(status) {
+      const el = $("tracker-status");
+      const btn = $("tracker-toggle");
+      if (!status.supported) {
+        el.textContent = "· 仅支持 macOS";
+        el.style.color = "var(--muted)";
+        btn.style.display = "none";
+        return;
+      }
+      trackerEnabled = status.enabled;
+      btn.textContent = status.enabled ? "暂停追踪" : "继续追踪";
+      if (status.running) {
+        const now = status.current ? `：${status.current.app}` : "";
+        el.textContent = "· 追踪中" + now;
+        el.style.color = "var(--good)";
+      } else if (!status.enabled) {
+        el.textContent = "· 已暂停";
+        el.style.color = "var(--muted)";
+      } else if (status.lastError) {
+        el.textContent = "· 受限（检查系统权限）";
+        el.style.color = "var(--accent)";
+      } else {
+        el.textContent = "· 未运行";
+        el.style.color = "var(--muted)";
+      }
+    }
+
+    // Fetch and render activity data
+    async function refreshActivities() {
+      try {
+        renderTrackerStatus(await api("/api/activities/status"));
+
+        const activities = await api(`/api/activities/${state.date}`);
+
+        // App usage — aggregated by app, sorted by time, with proportional bars.
+        const appsHost = $("activity-apps");
+        const apps = aggregate(activities.apps, a => a.name || a.bundleId);
+        if (apps.length > 0) {
+          const totalMs = apps.reduce((s, [, ms]) => s + ms, 0);
+          const max = apps[0][1] || 1;
+          appsHost.innerHTML = `
+            <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+              共 <strong>${apps.length}</strong> 个 App · 前台 ${fmtDuration(totalMs)}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              ${apps.slice(0, 12).map(([name, ms]) => `
+                <div style="display:flex;align-items:center;gap:10px;font-size:13px;">
+                  <div style="flex:0 0 140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(name)}">${escapeHTML(name)}</div>
+                  <div style="flex:1;background:#f0ece6;border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="width:${Math.max(3, Math.round(ms / max * 100))}%;height:100%;background:var(--accent);opacity:0.7;"></div>
+                  </div>
+                  <div style="flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;">${fmtDuration(ms)}</div>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        } else {
+          appsHost.innerHTML = `<div class="empty">暂无 App 使用记录。需在「系统设置 → 隐私与安全性 → 辅助功能」勾选运行服务器的终端。</div>`;
+        }
+
+        // Window titles — what was actually on screen.
+        const windowsHost = $("activity-windows");
+        const windows = aggregate(activities.windows, w => w.title);
+        if (windows.length > 0) {
+          windowsHost.innerHTML = `
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">看过的窗口</div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              ${windows.slice(0, 10).map(([title, ms]) => `
+                <div style="display:flex;gap:10px;font-size:12px;">
+                  <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(title)}">${escapeHTML(title)}</div>
+                  <div style="color:var(--muted);font-variant-numeric:tabular-nums;">${fmtDuration(ms)}</div>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        } else {
+          windowsHost.innerHTML = "";
+        }
+
+        // Screenshots
+        const screenshotsHost = $("activity-screenshots");
+        if (activities.screenshots && activities.screenshots.length > 0) {
+          screenshotsHost.innerHTML = `
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">截图 (${activities.screenshots.length})</div>
+            <div style="display:flex;gap:8px;overflow-x:auto;">
+              ${activities.screenshots.slice(-5).reverse().map(s => `
+                <div style="flex-shrink:0;width:120px;">
+                  <img src="/data/screenshots/${state.date}/${s.filename}"
+                       style="width:100%;border-radius:6px;border:1px solid var(--line);"
+                       alt="screenshot"
+                       onerror="this.style.display='none'" />
+                  <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:2px;">${fmtTime(s.ts)}</div>
+                </div>
+              `).join("")}
+            </div>
+          `;
+        } else {
+          screenshotsHost.innerHTML = "";
+        }
+      } catch (err) {
+        console.error("Activity fetch failed:", err);
+      }
+    }
+
+    // Pause / resume tracking.
+    $("tracker-toggle").onclick = async () => {
+      try {
+        const res = await api("/api/tracker/toggle", { method: "POST", body: { enabled: !trackerEnabled } });
+        renderTrackerStatus(res);
+        toast(res.enabled ? "追踪已继续" : "追踪已暂停");
+      } catch (err) { toast("出错了：" + err.message); }
+    };
+
+    // Auto-refresh activities every 30 seconds
+    setInterval(() => { if (state) refreshActivities(); }, 30 * 1000);
+
+    refresh()
+      .then(refreshActivities)
+      .catch((err) => {
+        $("meta").textContent = "出错了：" + err.message;
+      });
+  </script>
+</body>
+</html>

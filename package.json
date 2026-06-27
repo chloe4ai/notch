@@ -1,0 +1,22 @@
+{
+  "name": "littlejot",
+  "version": "0.1.0",
+  "description": "LittleJot — 私人工作日志 with activity tracking",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0",
+    "express": "^4.19.2",
+    "multer": "^2.1.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}
