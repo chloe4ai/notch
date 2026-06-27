@@ -10,9 +10,8 @@
   "app": {
     "windows": [],
     "trayIcon": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true,
-      "title": "LittleJot"
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": true
     },
     "security": {
       "csp": null

@@ -44,7 +44,7 @@ fn create_tray_menu<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu
 fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     let menu = create_tray_menu(app)?;
     let menu_for_tray = menu.clone();
-    let icon = Image::from_bytes(include_bytes!("../icons/icon.png"))?;
+    let icon = Image::from_bytes(include_bytes!("../icons/tray.png"))?;
 
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
