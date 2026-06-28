@@ -21,10 +21,26 @@ import {
   saveScreenshotFile,
   loadActivities,
   todayString,
+  addPlanItem,
+  togglePlanItem,
+  isoWeekId,
+  weekRangeForDate,
+  loadWeek,
+  addWeekPriority,
+  toggleWeekPriority,
+  loadFeed,
 } from "./storage.js";
 import { summarize, ask } from "./summarizer.js";
 import { startScheduler } from "./scheduler.js";
 import { startTracking, toggleTracking, setEnabled, getStatus } from "./tracker.js";
+import {
+  buildDailyPlan,
+  buildDailyReview,
+  buildWeeklyPlan,
+  buildWeeklyReview,
+} from "./planner.js";
+import { getRoutines, updateRoutine, runRoutine, startRoutines } from "./routines.js";
+import { fetchCalendarSafe, eventsForDate, eventsForWeek } from "./calendar.js";
 
 // Configure multer for screenshot uploads
 const upload = multer({
@@ -81,6 +97,8 @@ app.get("/api/today", async (_req, res) => {
       hasLLM: Boolean(process.env.ANTHROPIC_API_KEY),
       model: process.env.ANTHROPIC_MODEL || null,
       schedule: process.env.SUMMARY_SCHEDULE || "12:00,18:00,21:00",
+      hasCalendar: Boolean(process.env.CALENDAR_ICS_URL),
+      weekId: isoWeekId(date),
     },
   });
 });
@@ -136,6 +154,162 @@ app.post("/api/ask", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// --- Plan / Review / Routines (Little-Bird-style planning) -----------------
+
+// Daily plan: generate (AI), read, add a manual item, toggle an item done.
+app.post("/api/plan/today/generate", async (_req, res) => {
+  try {
+    const plan = await buildDailyPlan(todayString());
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/plan/today/items", async (req, res) => {
+  try {
+    const item = await addPlanItem(todayString(), (req.body || {}).text);
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/plan/today/items/:id/toggle", async (req, res) => {
+  try {
+    const { done } = req.body || {};
+    const item = await togglePlanItem(todayString(), req.params.id, done);
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Daily review.
+app.post("/api/review/today/generate", async (_req, res) => {
+  try {
+    const review = await buildDailyReview(todayString());
+    res.json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Weekly plan + review for the current (or ?date=) week.
+function weekCtxFor(dateStr) {
+  const date = dateStr || todayString();
+  return { weekId: isoWeekId(date), range: weekRangeForDate(date) };
+}
+
+app.get("/api/week", async (req, res) => {
+  try {
+    const { weekId, range } = weekCtxFor(req.query.date);
+    const week = await loadWeek(weekId, range);
+    res.json({ ...week, range });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/plan/generate", async (req, res) => {
+  try {
+    const { weekId, range } = weekCtxFor((req.body || {}).date);
+    const plan = await buildWeeklyPlan(weekId, range);
+    res.json(plan);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/plan/items", async (req, res) => {
+  try {
+    const { weekId, range } = weekCtxFor((req.body || {}).date);
+    const item = await addWeekPriority(weekId, range, (req.body || {}).text);
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/plan/items/:id/toggle", async (req, res) => {
+  try {
+    const { weekId, range } = weekCtxFor((req.body || {}).date);
+    const item = await toggleWeekPriority(weekId, range, req.params.id, (req.body || {}).done);
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/review/generate", async (req, res) => {
+  try {
+    const { weekId, range } = weekCtxFor((req.body || {}).date);
+    const review = await buildWeeklyReview(weekId, range);
+    res.json(review);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Calendar feed (forward-looking integration).
+app.get("/api/calendar/today", async (_req, res) => {
+  try {
+    const cal = await fetchCalendarSafe();
+    res.json({ ok: cal.ok, reason: cal.reason || null, events: eventsForDate(cal.events, todayString()) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/calendar/week", async (req, res) => {
+  try {
+    const { range } = weekCtxFor(req.query.date);
+    const cal = await fetchCalendarSafe();
+    res.json({ ok: cal.ok, reason: cal.reason || null, range, events: eventsForWeek(cal.events, range.monday, range.sunday) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Routines: list, toggle/update, run-now. Plus the proactive feed.
+app.get("/api/routines", async (_req, res) => {
+  try {
+    res.json(await getRoutines());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/api/routines/:id", async (req, res) => {
+  try {
+    const updated = await updateRoutine(req.params.id, req.body || {});
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/routines/:id/run", async (req, res) => {
+  try {
+    const routines = await getRoutines();
+    const routine = routines.find((r) => r.id === req.params.id);
+    if (!routine) return res.status(404).json({ error: "routine not found" });
+    const result = await runRoutine(routine.type);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/feed", async (_req, res) => {
+  try {
+    const feed = await loadFeed();
+    res.json(feed.slice(-30).reverse());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -226,4 +400,5 @@ app.listen(PORT, () => {
 });
 
 startScheduler({ schedule: process.env.SUMMARY_SCHEDULE });
+startRoutines();
 if (TRACKING_ON) startTracking();

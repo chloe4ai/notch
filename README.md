@@ -59,6 +59,42 @@ littlejot/
 
 ---
 
+## Plan ahead & review · 计划与复盘（Little Bird 式）
+
+Notch no longer just *records the past* — it also *plans the future*. Three tabs:
+**今天 / 本周 / Bird**.
+
+Notch 不再只是「记录过去」，还能「规划未来」。三个标签页：**今天 / 本周 / Bird**。
+
+- **Daily plan · 每日计划** — Bird drafts the day's 3–5 focus items, grounded in
+  yesterday's unfinished items, your calendar, this week's priorities, and your
+  `goals.md`. Check items off through the day; add your own. (晨间起草当天重点，
+  锚定昨天遗留、日历、本周重点和长期目标；可勾选、可手动加。)
+- **Daily review · 每日复盘** — evening plan-vs-actual: what landed, what didn't,
+  wins, blockers, what carries to tomorrow — using your tracked activity as
+  ground truth. (晚间「计划 vs 实际」，用真实活动追踪做底。)
+- **Weekly plan · 每周计划** — Monday's theme + 3–5 priorities for the week. (周一
+  定主题与本周重点。)
+- **Weekly review · 每周复盘** — rolls up the week's daily reviews + tracked time
+  into progress, patterns, and seeds for next week. (周复盘汇总一周的每日复盘与时
+  间投入，看进展与模式。)
+- **Routines · 例行助理** — the proactive engine (Little Bird's "Routines"). At
+  set times it auto-generates the above and drops a card in your **feed**
+  ("Bird drafted your daily plan"). Toggle each on/off or run it now. (到点自动
+  产出计划/复盘并推送到动态；可逐个开关或手动运行。)
+- **Calendar integration · 日历集成** — point `CALENDAR_ICS_URL` at any Google/Apple
+  ICS feed (no OAuth) so plans are anchored to real meetings. (接入 ICS 日历，让
+  计划锚定真实日程。)
+- **`goals.md` context** — a hand-written file of your goals/projects that every
+  plan reads. Notch's lightweight take on Little Bird "knowing your work" — one
+  file instead of a dozen integrations. (一个手写的目标文件，作为「了解你的世界」
+  的轻量上下文。)
+
+> All of it degrades gracefully without an API key (deterministic drafts) and
+> without a calendar. 没有 API key（用本地草稿）或没接日历也都能用。
+
+---
+
 ## Getting started · 运行方式
 
 Activity tracking is **built into the Node server**, so a single command runs the whole app — notes, timers, AI summaries, and app/window/screenshot tracking. No separate build or menu-bar app required.
@@ -114,6 +150,19 @@ The Tauri app in `src-tauri/` opens Notch in a native window. Its **old built-in
 | `/api/tasks/stop` | POST | Stop the current task | 结束任务 |
 | `/api/summarize` | POST | Generate an AI summary | 生成 AI 总结 |
 | `/api/ask` | POST | Conversational Q&A (`{question, history}`) | 对话问答（基于当天数据+活动时间线） |
+| `/api/plan/today/generate` | POST | Generate today's daily plan | 生成今日计划 |
+| `/api/plan/today/items` | POST | Add a manual plan item (`{text}`) | 手动加计划项 |
+| `/api/plan/today/items/:id/toggle` | POST | Check/uncheck a plan item | 勾选/取消计划项 |
+| `/api/review/today/generate` | POST | Generate today's daily review | 生成今日复盘 |
+| `/api/week` | GET | This week's plan + review (`?date=`) | 本周计划+复盘 |
+| `/api/week/plan/generate` | POST | Generate the weekly plan | 生成本周计划 |
+| `/api/week/plan/items` | POST | Add / toggle a weekly priority | 加/勾选本周重点 |
+| `/api/week/review/generate` | POST | Generate the weekly review | 生成本周复盘 |
+| `/api/calendar/today` · `/week` | GET | Upcoming calendar events (ICS) | 日历事件 |
+| `/api/routines` | GET | List routines | 列出例行助理 |
+| `/api/routines/:id` | PATCH | Enable/disable or retime a routine | 开关/改时间 |
+| `/api/routines/:id/run` | POST | Run a routine now | 立即运行 |
+| `/api/feed` | GET | Recent proactive cards | 最近的动态卡片 |
 | `/api/activities/:date` | GET | Get a day's activity (apps/windows/screenshots) | 获取某日活动 |
 | `/api/activities/status` | GET | Tracker status (running / current app / error) | 内置追踪器状态 |
 | `/api/tracker/toggle` | POST | Pause / resume tracking (`{enabled}`) | 暂停 / 继续追踪 |
@@ -159,6 +208,8 @@ One file per day at `data/YYYY-MM-DD.json` · 每日数据存储在 `data/YYYY-M
   "entries": [{ "id", "ts", "text", "tag" }],
   "tasks": [{ "id", "name", "startTs", "endTs", "durationMs" }],
   "summaries": [{ "id", "ts", "slot", "text", "model" }],
+  "plan": { "id", "ts", "model", "headline", "items": [{ "id", "text", "done", "source" }], "note" },
+  "review": { "id", "ts", "model", "text" },
   "activities": {
     "apps": [{ "id", "ts", "bundleId", "name", "durationMs" }],
     "windows": [{ "id", "ts", "app", "bundleId", "title", "durationMs" }],
@@ -167,8 +218,14 @@ One file per day at `data/YYYY-MM-DD.json` · 每日数据存储在 `data/YYYY-M
 }
 ```
 
-Screenshots are stored under `data/screenshots/YYYY-MM-DD/`.
-截图文件存储在 `data/screenshots/YYYY-MM-DD/` 目录。
+Weekly plans/reviews live in `data/weeks/YYYY-Www.json`; routine config in
+`data/routines.json`; the proactive feed in `data/feed.json`; your long-horizon
+context in `data/goals.md` (copy from `data/goals.example.md`). Screenshots are
+stored under `data/screenshots/YYYY-MM-DD/`.
+
+每周计划/复盘存在 `data/weeks/YYYY-Www.json`；例行助理配置在 `data/routines.json`；
+动态在 `data/feed.json`；长期上下文在 `data/goals.md`（从 `data/goals.example.md`
+复制）。截图文件存储在 `data/screenshots/YYYY-MM-DD/` 目录。
 
 ---
 
