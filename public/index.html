@@ -14,6 +14,7 @@
       --accent: #c75d3a;
       --accent-soft: #fbeee7;
       --good: #2e7d4f;
+      --good-soft: #e7f1ec;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -25,11 +26,18 @@
     .wrap { max-width: 880px; margin: 0 auto; padding: 28px 24px 80px; }
     header {
       display: flex; justify-content: space-between; align-items: baseline;
-      margin-bottom: 24px;
+      margin-bottom: 8px;
     }
     header h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
     header .meta { font-size: 12px; color: var(--muted); }
     header .meta code { background: #f0ece6; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    nav.tabs { display: flex; gap: 4px; margin: 14px 0 22px; border-bottom: 1px solid var(--line); }
+    nav.tabs button {
+      font: inherit; font-size: 14px; padding: 8px 14px; border: none; background: none;
+      color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    nav.tabs button:hover { color: var(--ink); }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -38,6 +46,10 @@
       margin-bottom: 18px;
     }
     .card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+    .card.plan { border-left: 3px solid var(--accent); }
+    .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .card-head h2 { margin: 0; flex: 1; }
+    .card-head button { font-size: 12px; padding: 5px 11px; text-transform: none; letter-spacing: 0; }
     textarea {
       width: 100%;
       min-height: 90px;
@@ -125,6 +137,75 @@
     .chat-msg.assistant .bubble strong { color: var(--ink); }
     .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; }
+    /* Markdown rendering for plans / reviews */
+    .md { line-height: 1.6; }
+    .md .md-h { margin: 14px 0 6px; line-height: 1.3; }
+    .md h3.md-h { font-size: 17px; }
+    .md h4.md-h { font-size: 14px; color: var(--ink); }
+    .md h5.md-h { font-size: 13px; color: var(--muted); text-transform: none; }
+    .md p { margin: 6px 0; }
+    .md ul.md-list { margin: 6px 0; padding-left: 20px; }
+    .md li { margin: 3px 0; }
+    .md li.md-check { list-style: none; margin-left: -20px; display: flex; gap: 8px; align-items: baseline; }
+    .md li.md-check .box {
+      flex: 0 0 16px; width: 16px; height: 16px; border: 1.5px solid var(--line); border-radius: 4px;
+      display: inline-flex; align-items: center; justify-content: center; font-size: 11px; color: var(--good);
+    }
+    .md li.md-check.done { color: var(--muted); text-decoration: line-through; }
+    .md li.md-check.done .box { background: var(--good-soft); border-color: var(--good); }
+    /* Interactive checklist (plan items) */
+    .checklist { list-style: none; margin: 6px 0 0; padding: 0; }
+    .checklist li {
+      display: flex; gap: 10px; align-items: baseline; padding: 7px 0; border-bottom: 1px solid var(--line);
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist .box {
+      flex: 0 0 18px; width: 18px; height: 18px; border: 1.5px solid #cfc7bb; border-radius: 5px;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+      color: #fff; transition: background 0.12s, border-color 0.12s;
+    }
+    .checklist li.done .box { background: var(--good); border-color: var(--good); }
+    .checklist li.done .txt { color: var(--muted); text-decoration: line-through; }
+    .checklist .txt { flex: 1; }
+    .checklist .src { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 6px; }
+    .intention { font-size: 16px; font-weight: 600; margin: 2px 0 10px; }
+    .note-line { font-size: 13px; color: var(--muted); margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+    /* Calendar list */
+    .cal { list-style: none; margin: 8px 0 0; padding: 0; }
+    .cal li { display: flex; gap: 10px; font-size: 13px; padding: 5px 0; }
+    .cal .when { color: var(--accent); font-variant-numeric: tabular-nums; flex: 0 0 auto; min-width: 52px; }
+    .cal .what { flex: 1; }
+    /* Routines + feed */
+    .routine { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .routine:last-child { border-bottom: none; }
+    .routine .info { flex: 1; }
+    .routine .info .name { font-weight: 600; }
+    .routine .info .sched { font-size: 12px; color: var(--muted); }
+    .switch { position: relative; width: 40px; height: 22px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider {
+      position: absolute; inset: 0; background: #d8d2c8; border-radius: 999px; cursor: pointer; transition: 0.15s;
+    }
+    .switch .slider::before {
+      content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: 0.15s;
+    }
+    .switch input:checked + .slider { background: var(--good); }
+    .switch input:checked + .slider::before { transform: translateX(18px); }
+    .feed-card {
+      display: flex; gap: 12px; padding: 12px 14px; border: 1px solid var(--line);
+      border-radius: 9px; margin-bottom: 10px; background: #fffdf8;
+    }
+    .feed-card .icon { font-size: 18px; }
+    .feed-card .body { flex: 1; }
+    .feed-card .title { font-weight: 600; font-size: 14px; }
+    .feed-card .detail { font-size: 13px; color: var(--muted); }
+    .feed-card .when { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .banner {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 18px;
+      background: var(--accent-soft); border: 1px solid #f0d8cb; border-radius: 9px; font-size: 13px;
+    }
+    .banner .x { margin-left: auto; cursor: pointer; color: var(--muted); border: none; background: none; font-size: 16px; }
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: #1a1a1a; color: #fff;
@@ -135,6 +216,7 @@
       pointer-events: none;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -144,61 +226,130 @@
       <div class="meta" id="meta"></div>
     </header>
 
-    <div class="card">
-      <h2>正在做的事</h2>
-      <div id="running-host"></div>
-      <div class="row">
-        <input type="text" id="task-name" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
-        <button class="primary" id="task-start">开始</button>
+    <nav class="tabs" id="tabs">
+      <button data-view="today" class="active">今天</button>
+      <button data-view="week">本周</button>
+      <button data-view="bird">Bird · 助理</button>
+    </nav>
+
+    <!-- ============ TODAY ============ -->
+    <section id="view-today">
+      <div id="feed-banner"></div>
+
+      <div class="card plan">
+        <div class="card-head">
+          <h2>今日计划</h2>
+          <button class="primary" id="plan-gen">生成计划</button>
+        </div>
+        <div id="plan-host"></div>
+        <div class="row" style="margin-top:10px;">
+          <input type="text" id="plan-add" placeholder="自己加一条要做的事…" autocomplete="off"/>
+          <button id="plan-add-btn">加入</button>
+        </div>
+        <div id="cal-today-host"></div>
       </div>
-      <div class="hint">开始新任务时，上一个任务会自动停下来。</div>
-    </div>
 
-    <div class="card">
-      <h2>随手记一笔</h2>
-      <textarea id="entry" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
-      <div class="row" style="margin-top: 10px;">
-        <button class="primary" id="entry-save">保存</button>
-        <button class="ghost" id="summarize">现在总结</button>
-        <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+      <div class="card">
+        <h2>正在做的事</h2>
+        <div id="running-host"></div>
+        <div class="row">
+          <input type="text" id="task-name" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
+          <button class="primary" id="task-start">开始</button>
+        </div>
+        <div class="hint">开始新任务时，上一个任务会自动停下来。</div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>问问今天</h2>
-      <div class="chat-log" id="chat-log"></div>
-      <div class="row" style="margin-top: 10px;">
-        <input type="text" id="chat-input" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
-        <button class="primary" id="chat-send">发送</button>
+      <div class="card">
+        <h2>随手记一笔</h2>
+        <textarea id="entry" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="primary" id="entry-save">保存</button>
+          <button class="ghost" id="summarize">现在总结</button>
+          <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+        </div>
       </div>
-      <div class="chips">
-        <button class="ghost chip" data-q="我过去一小时做了什么？">过去一小时</button>
-        <button class="ghost chip" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
-        <button class="ghost chip" data-q="我今天的时间主要花在哪些事情上？">时间花哪了</button>
+
+      <div class="card">
+        <h2>问问今天</h2>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="row" style="margin-top: 10px;">
+          <input type="text" id="chat-input" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
+          <button class="primary" id="chat-send">发送</button>
+        </div>
+        <div class="chips">
+          <button class="ghost chip" data-q="我过去一小时做了什么？">过去一小时</button>
+          <button class="ghost chip" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
+          <button class="ghost chip" data-q="对照今天的计划，我还有哪些没做？">对照计划</button>
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>今天</h2>
-      <div class="totals" id="totals"></div>
-      <ul class="timeline" id="timeline"></ul>
-    </div>
+      <div class="card">
+        <h2>今天</h2>
+        <div class="totals" id="totals"></div>
+        <ul class="timeline" id="timeline"></ul>
+      </div>
 
-    <div class="card">
-      <h2>小结</h2>
-      <div id="summaries"></div>
-    </div>
+      <div class="card">
+        <div class="card-head">
+          <h2>今日复盘</h2>
+          <button class="primary" id="review-gen">生成复盘</button>
+        </div>
+        <div id="review-host"></div>
+      </div>
 
-    <div class="card">
-      <h2 style="display:flex;align-items:center;gap:8px;">
-        活动日志
-        <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
-        <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">暂停追踪</button>
-      </h2>
-      <div id="activity-apps"></div>
-      <div id="activity-windows" style="margin-top:12px;"></div>
-      <div id="activity-screenshots" style="margin-top:12px;"></div>
-    </div>
+      <div class="card">
+        <h2>小结</h2>
+        <div id="summaries"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="display:flex;align-items:center;gap:8px;">
+          活动日志
+          <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
+          <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">暂停追踪</button>
+        </h2>
+        <div id="activity-apps"></div>
+        <div id="activity-windows" style="margin-top:12px;"></div>
+        <div id="activity-screenshots" style="margin-top:12px;"></div>
+      </div>
+    </section>
+
+    <!-- ============ WEEK ============ -->
+    <section id="view-week" hidden>
+      <div class="card plan">
+        <div class="card-head">
+          <h2 id="week-title">本周计划</h2>
+          <button class="primary" id="wplan-gen">生成计划</button>
+        </div>
+        <div id="wplan-host"></div>
+        <div class="row" style="margin-top:10px;">
+          <input type="text" id="wplan-add" placeholder="加一条本周重点…" autocomplete="off"/>
+          <button id="wplan-add-btn">加入</button>
+        </div>
+        <div id="cal-week-host"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>本周复盘</h2>
+          <button class="primary" id="wreview-gen">生成复盘</button>
+        </div>
+        <div id="wreview-host"></div>
+      </div>
+    </section>
+
+    <!-- ============ BIRD ============ -->
+    <section id="view-bird" hidden>
+      <div class="card">
+        <h2>例行助理 · Routines</h2>
+        <div class="hint" style="margin-bottom:6px;">到点自动帮你起草计划与复盘，结果出现在下面的动态里。开关随时调。</div>
+        <div id="routines-host"></div>
+      </div>
+      <div class="card">
+        <h2>动态 · Bird 帮你做了什么</h2>
+        <div id="feed-host"></div>
+      </div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -209,6 +360,10 @@
     function fmtTime(iso) {
       const d = new Date(iso);
       return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    }
+    function fmtWhen(iso) {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
     }
     function fmtDuration(ms) {
       if (!ms || ms < 0) return "0m";
@@ -236,16 +391,72 @@
       }
       return res.json();
     }
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+    // Small markdown renderer for plans / reviews: #/##/### headings, bullets,
+    // - [ ] checkboxes, **bold**.
+    function md(src) {
+      const lines = String(src || "").split("\n");
+      let html = "", inList = false;
+      const inline = (s) => escapeHTML(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
+      for (const raw of lines) {
+        const t = raw.replace(/\s+$/, "");
+        if (!t.trim()) { closeList(); continue; }
+        let m;
+        if ((m = t.match(/^(#{1,3})\s+(.*)$/))) {
+          closeList();
+          const lvl = m[1].length + 2;
+          html += `<h${lvl} class="md-h">${inline(m[2])}</h${lvl}>`;
+          continue;
+        }
+        if ((m = t.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/))) {
+          if (!inList) { html += '<ul class="md-list">'; inList = true; }
+          const done = m[1].toLowerCase() === "x";
+          html += `<li class="md-check ${done ? "done" : ""}"><span class="box">${done ? "✓" : ""}</span><span>${inline(m[2])}</span></li>`;
+          continue;
+        }
+        if ((m = t.match(/^[-*]\s+(.*)$/))) {
+          if (!inList) { html += '<ul class="md-list">'; inList = true; }
+          html += `<li>${inline(m[1])}</li>`;
+          continue;
+        }
+        closeList();
+        html += `<p>${inline(t)}</p>`;
+      }
+      closeList();
+      return `<div class="md">${html}</div>`;
+    }
 
     let state = null;
 
+    // --- View switching ---
+    function showView(name) {
+      for (const v of ["today", "week", "bird"]) {
+        $("view-" + v).hidden = v !== name;
+      }
+      document.querySelectorAll("#tabs button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.view === name)
+      );
+      if (name === "week") loadWeek();
+      if (name === "bird") loadBird();
+    }
+    document.querySelectorAll("#tabs button").forEach((b) => {
+      b.onclick = () => showView(b.dataset.view);
+    });
+
     function render() {
-      // Meta line
       const cfg = state.config;
       $("meta").innerHTML =
-        `${state.date} · 数据 → <code>${cfg.dataDir}</code> · ` +
+        `${state.date} · ${cfg.weekId || ""} · ` +
         `AI：<strong>${cfg.hasLLM ? cfg.model || "已开" : "未启用"}</strong> · ` +
-        `自动小结：${cfg.schedule}`;
+        `日历：${cfg.hasCalendar ? "已接" : "未接"}`;
+
+      renderPlan();
+      renderReview();
 
       // Running task
       const open = state.tasks.find((t) => t.endTs == null);
@@ -273,7 +484,7 @@
         <span>共 <strong>${fmtDuration(totalMs)}</strong></span>
       `;
 
-      // Timeline (entries + tasks merged, newest first)
+      // Timeline
       const items = [
         ...state.entries.map((e) => ({ kind: "entry", ts: e.ts, data: e })),
         ...state.tasks.flatMap((t) => {
@@ -289,54 +500,111 @@
       } else {
         tl.innerHTML = items.map((i) => {
           if (i.kind === "entry") {
-            return `<li>
-              <span class="ts">${fmtTime(i.ts)}</span>
-              <div class="body">${escapeHTML(i.data.text)}</div>
-            </li>`;
+            return `<li><span class="ts">${fmtTime(i.ts)}</span><div class="body">${escapeHTML(i.data.text)}</div></li>`;
           }
           if (i.kind === "task-start") {
-            return `<li>
-              <span class="ts">${fmtTime(i.ts)}</span>
-              <div class="body"><span class="pill task">▶ 开始</span><strong>${escapeHTML(i.data.name)}</strong></div>
-            </li>`;
+            return `<li><span class="ts">${fmtTime(i.ts)}</span><div class="body"><span class="pill task">▶ 开始</span><strong>${escapeHTML(i.data.name)}</strong></div></li>`;
           }
-          return `<li>
-            <span class="ts">${fmtTime(i.ts)}</span>
-            <div class="body"><span class="pill task">■ 结束</span>${escapeHTML(i.data.name)} <span style="color:var(--muted)">(${fmtDuration(i.data.durationMs)})</span></div>
-          </li>`;
+          return `<li><span class="ts">${fmtTime(i.ts)}</span><div class="body"><span class="pill task">■ 结束</span>${escapeHTML(i.data.name)} <span style="color:var(--muted)">(${fmtDuration(i.data.durationMs)})</span></div></li>`;
         }).join("");
       }
 
-      // Summaries (newest first)
+      // Summaries
       const sumHost = $("summaries");
       const sums = [...state.summaries].sort((a, b) => new Date(b.ts) - new Date(a.ts));
       if (sums.length === 0) {
-        sumHost.innerHTML = `<div class="empty">还没有小结。点「现在总结」即时生成，或者等到 12:00 / 15:00 / 18:00 自动出。</div>`;
+        sumHost.innerHTML = `<div class="empty">还没有小结。点「现在总结」即时生成，或等到自动小结时间。</div>`;
       } else {
         sumHost.innerHTML = sums.map((s) => `
           <div class="summary">
             <h3>${escapeHTML(slotLabel(s.slot))}</h3>
             <div class="when">${fmtTime(s.ts)} · ${s.model || "纯聚合（无 AI）"}</div>
-            <pre>${escapeHTML(s.text)}</pre>
-          </div>
-        `).join("");
+            ${md(s.text)}
+          </div>`).join("");
+      }
+    }
+
+    // --- Daily plan ---
+    function renderChecklist(items, onToggle) {
+      if (!items || !items.length) return `<div class="empty">还没有计划。点「生成计划」让 Bird 起草，或自己加一条。</div>`;
+      const ul = document.createElement("ul");
+      ul.className = "checklist";
+      items.forEach((it) => {
+        const li = document.createElement("li");
+        if (it.done) li.classList.add("done");
+        li.innerHTML = `<span class="box">${it.done ? "✓" : ""}</span><span class="txt">${escapeHTML(it.text)}</span>${it.source === "manual" ? '<span class="src">手动</span>' : ""}`;
+        li.querySelector(".box").onclick = () => onToggle(it);
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+
+    function renderPlan() {
+      const host = $("plan-host");
+      host.innerHTML = "";
+      const plan = state.plan;
+      if (plan && plan.headline) {
+        const h = document.createElement("div");
+        h.className = "intention";
+        h.textContent = "🎯 " + plan.headline;
+        host.appendChild(h);
+      }
+      const list = renderChecklist(plan && plan.items, async (it) => {
+        try {
+          await api(`/api/plan/today/items/${it.id}/toggle`, { method: "POST", body: {} });
+          await refresh();
+        } catch (err) { toast("出错了：" + err.message); }
+      });
+      if (typeof list === "string") host.insertAdjacentHTML("beforeend", list);
+      else host.appendChild(list);
+      if (plan && plan.note) {
+        const n = document.createElement("div");
+        n.className = "note-line";
+        n.textContent = "💡 " + plan.note;
+        host.appendChild(n);
+      }
+    }
+
+    function renderCalendar(hostId, data, label) {
+      const host = $(hostId);
+      if (!data) { host.innerHTML = ""; return; }
+      if (!data.ok) {
+        host.innerHTML = `<div class="hint" style="margin-top:12px;">📅 ${label}未接日历。在 .env 设 CALENDAR_ICS_URL（Google「密钥 iCal 地址」或 Apple 共享日历链接）即可。</div>`;
+        return;
+      }
+      if (!data.events.length) {
+        host.innerHTML = `<div class="hint" style="margin-top:12px;">📅 ${label}日历上没有安排。</div>`;
+        return;
+      }
+      host.innerHTML = `<div class="hint" style="margin-top:14px;margin-bottom:2px;">📅 ${label}日历</div>` +
+        `<ul class="cal">${data.events.map((e) => {
+          const when = e.allDay ? "全天" :
+            new Date(e.start).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+          const day = label === "本周" ? new Date(e.start).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) + " " : "";
+          return `<li><span class="when">${day}${when}</span><span class="what">${escapeHTML(e.summary)}${e.location ? ` · ${escapeHTML(e.location)}` : ""}</span></li>`;
+        }).join("")}</ul>`;
+    }
+
+    async function loadCalToday() {
+      try { renderCalendar("cal-today-host", await api("/api/calendar/today"), "今天"); }
+      catch (err) { /* non-fatal */ }
+    }
+
+    // --- Daily review ---
+    function renderReview() {
+      const host = $("review-host");
+      if (state.review && state.review.text) {
+        host.innerHTML = `<div class="when" style="font-size:12px;color:var(--muted);margin-bottom:6px;">${fmtTime(state.review.ts)} · ${state.review.model || "纯聚合（无 AI）"}</div>` + md(state.review.text);
+      } else {
+        host.innerHTML = `<div class="empty">今天还没复盘。点「生成复盘」让 Bird 对照计划，看看这一天落地得怎么样。</div>`;
       }
     }
 
     function slotLabel(slot) {
       return ({
-        noon: "午间小结",
-        afternoon: "下午小结",
-        evening: "晚间小结",
-        night: "夜间收尾",
-        adhoc: "即时小结",
+        noon: "午间小结", afternoon: "下午小结", evening: "晚间小结",
+        night: "夜间收尾", adhoc: "即时小结",
       }[slot] || "小结");
-    }
-
-    function escapeHTML(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-      }[c]));
     }
 
     async function refresh() {
@@ -344,6 +612,127 @@
       render();
     }
 
+    // --- Week view ---
+    let weekState = null;
+    async function loadWeek() {
+      try {
+        weekState = await api("/api/week");
+        renderWeek();
+        renderCalendar("cal-week-host", await api("/api/calendar/week"), "本周");
+      } catch (err) { toast("出错了：" + err.message); }
+    }
+    function renderWeek() {
+      const w = weekState;
+      $("week-title").textContent = `本周计划 · ${w.weekId}（${w.range.monday} ~ ${w.range.sunday}）`;
+      const host = $("wplan-host");
+      host.innerHTML = "";
+      const plan = w.plan;
+      if (plan && plan.theme) {
+        const h = document.createElement("div");
+        h.className = "intention";
+        h.textContent = "🧭 " + plan.theme;
+        host.appendChild(h);
+      }
+      const list = renderChecklist(plan && plan.items, async (it) => {
+        try {
+          await api(`/api/week/plan/items/${it.id}/toggle`, { method: "POST", body: {} });
+          await loadWeek();
+        } catch (err) { toast("出错了：" + err.message); }
+      });
+      if (typeof list === "string") host.insertAdjacentHTML("beforeend", list);
+      else host.appendChild(list);
+      if (plan && plan.note) {
+        const n = document.createElement("div");
+        n.className = "note-line";
+        n.textContent = "💡 " + plan.note;
+        host.appendChild(n);
+      }
+      const rHost = $("wreview-host");
+      if (w.review && w.review.text) {
+        rHost.innerHTML = `<div class="when" style="font-size:12px;color:var(--muted);margin-bottom:6px;">${fmtWhen(w.review.ts)} · ${w.review.model || "纯聚合（无 AI）"}</div>` + md(w.review.text);
+      } else {
+        rHost.innerHTML = `<div class="empty">这周还没复盘。到周末点「生成复盘」，Bird 会把一周的进展和模式理出来。</div>`;
+      }
+    }
+
+    // --- Bird view (routines + feed) ---
+    async function loadBird() {
+      try {
+        const [routines, feed] = await Promise.all([api("/api/routines"), api("/api/feed")]);
+        renderRoutines(routines);
+        renderFeed(feed);
+      } catch (err) { toast("出错了：" + err.message); }
+    }
+    const TYPE_DESC = {
+      "daily-plan": "每天早上起草当天计划",
+      "daily-review": "每天晚上对照计划复盘",
+      "weekly-plan": "每周一规划这一周",
+      "weekly-review": "每周五复盘这一周",
+    };
+    const DAY_NAMES = ["一", "二", "三", "四", "五", "六", "日"];
+    function schedText(r) {
+      const when = r.days === "daily" ? "每天" :
+        Array.isArray(r.days) ? "每周" + r.days.map((d) => DAY_NAMES[d - 1]).join("、") : "";
+      return `${when} ${r.time}`;
+    }
+    function renderRoutines(routines) {
+      const host = $("routines-host");
+      host.innerHTML = "";
+      routines.forEach((r) => {
+        const row = document.createElement("div");
+        row.className = "routine";
+        row.innerHTML = `
+          <div class="info">
+            <div class="name">${escapeHTML(r.label)}</div>
+            <div class="sched">${escapeHTML(TYPE_DESC[r.type] || "")} · ${escapeHTML(schedText(r))}</div>
+          </div>
+          <button class="ghost run-btn" style="font-size:12px;padding:5px 11px;">现在运行</button>
+          <label class="switch"><input type="checkbox" ${r.enabled ? "checked" : ""}/><span class="slider"></span></label>`;
+        row.querySelector(".run-btn").onclick = async (e) => {
+          e.target.disabled = true; e.target.textContent = "运行中…";
+          try { await api(`/api/routines/${r.id}/run`, { method: "POST" }); toast("已生成，去对应页面看看"); await loadBird(); await refresh(); }
+          catch (err) { toast("出错了：" + err.message); }
+          finally { e.target.disabled = false; e.target.textContent = "现在运行"; }
+        };
+        row.querySelector("input").onchange = async (e) => {
+          try { await api(`/api/routines/${r.id}`, { method: "PATCH", body: { enabled: e.target.checked } }); toast(e.target.checked ? "已开启" : "已关闭"); }
+          catch (err) { toast("出错了：" + err.message); e.target.checked = !e.target.checked; }
+        };
+        host.appendChild(row);
+      });
+    }
+    const FEED_ICON = { "daily-plan": "🌅", "daily-review": "🌙", "weekly-plan": "🧭", "weekly-review": "📊" };
+    function renderFeed(feed) {
+      const host = $("feed-host");
+      if (!feed.length) { host.innerHTML = `<div class="empty">还没有动态。例行助理到点后，或你点「现在运行」，结果会出现在这里。</div>`; return; }
+      host.innerHTML = feed.map((c) => `
+        <div class="feed-card">
+          <div class="icon">${FEED_ICON[c.type] || "🐦"}</div>
+          <div class="body">
+            <div class="title">${escapeHTML(c.title)}</div>
+            <div class="detail">${escapeHTML(c.detail || "")}</div>
+            <div class="when">${fmtWhen(c.ts)}</div>
+          </div>
+        </div>`).join("");
+    }
+
+    // Latest feed card as a banner on Today.
+    async function refreshBanner() {
+      try {
+        const feed = await api("/api/feed");
+        const host = $("feed-banner");
+        const today = state ? state.date : "";
+        const recent = feed.find((c) => (c.ts || "").slice(0, 10) === today);
+        if (recent && localStorage.getItem("dismissed-feed") !== recent.id) {
+          host.innerHTML = `<div class="banner"><span>${FEED_ICON[recent.type] || "🐦"}</span><span><strong>${escapeHTML(recent.title)}</strong> · ${escapeHTML(recent.detail || "")}</span><button class="x" title="知道了">×</button></div>`;
+          host.querySelector(".x").onclick = () => { localStorage.setItem("dismissed-feed", recent.id); host.innerHTML = ""; };
+        } else {
+          host.innerHTML = "";
+        }
+      } catch (err) { /* non-fatal */ }
+    }
+
+    // --- Existing actions ---
     async function saveEntry() {
       const ta = $("entry");
       const text = ta.value.trim();
@@ -361,7 +750,6 @@
         ta.focus();
       }
     }
-
     async function startTask() {
       const name = $("task-name").value.trim();
       if (!name) return;
@@ -372,7 +760,6 @@
         toast("任务已开始");
       } catch (err) { toast("Failed: " + err.message); }
     }
-
     async function stopTask() {
       try {
         await api("/api/tasks/stop", { method: "POST" });
@@ -380,34 +767,68 @@
         toast("任务已停");
       } catch (err) { toast("Failed: " + err.message); }
     }
-
     async function summarize() {
       const btn = $("summarize");
-      btn.disabled = true;
-      btn.textContent = "整理中…";
+      btn.disabled = true; btn.textContent = "整理中…";
       try {
         await api("/api/summarize", { method: "POST", body: { slot: "adhoc" } });
         await refresh();
         toast("小结生成");
-      } catch (err) {
-        toast("出错了：" + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "现在总结";
-      }
+      } catch (err) { toast("出错了：" + err.message); }
+      finally { btn.disabled = false; btn.textContent = "现在总结"; }
     }
 
-    // --- Chat / Q&A about today ---
+    // --- Plan / review generation buttons ---
+    async function genDailyPlan() {
+      const btn = $("plan-gen");
+      btn.disabled = true; btn.textContent = "起草中…";
+      try { await api("/api/plan/today/generate", { method: "POST" }); await refresh(); await loadCalToday(); toast("计划已就绪"); }
+      catch (err) { toast("出错了：" + err.message); }
+      finally { btn.disabled = false; btn.textContent = state.plan ? "重新生成" : "生成计划"; }
+    }
+    async function genDailyReview() {
+      const btn = $("review-gen");
+      btn.disabled = true; btn.textContent = "复盘中…";
+      try { await api("/api/review/today/generate", { method: "POST" }); await refresh(); toast("复盘已生成"); }
+      catch (err) { toast("出错了：" + err.message); }
+      finally { btn.disabled = false; btn.textContent = "重新生成"; }
+    }
+    async function addPlanItem() {
+      const inp = $("plan-add");
+      const text = inp.value.trim();
+      if (!text) return;
+      try { await api("/api/plan/today/items", { method: "POST", body: { text } }); inp.value = ""; await refresh(); }
+      catch (err) { toast("出错了：" + err.message); }
+    }
+    async function genWeekPlan() {
+      const btn = $("wplan-gen");
+      btn.disabled = true; btn.textContent = "起草中…";
+      try { await api("/api/week/plan/generate", { method: "POST" }); await loadWeek(); toast("本周计划已就绪"); }
+      catch (err) { toast("出错了：" + err.message); }
+      finally { btn.disabled = false; btn.textContent = "重新生成"; }
+    }
+    async function genWeekReview() {
+      const btn = $("wreview-gen");
+      btn.disabled = true; btn.textContent = "复盘中…";
+      try { await api("/api/week/review/generate", { method: "POST" }); await loadWeek(); toast("周复盘已生成"); }
+      catch (err) { toast("出错了：" + err.message); }
+      finally { btn.disabled = false; btn.textContent = "重新生成"; }
+    }
+    async function addWeekItem() {
+      const inp = $("wplan-add");
+      const text = inp.value.trim();
+      if (!text) return;
+      try { await api("/api/week/plan/items", { method: "POST", body: { text } }); inp.value = ""; await loadWeek(); }
+      catch (err) { toast("出错了：" + err.message); }
+    }
+
+    // --- Chat / Q&A ---
     const chatMessages = [];
-
-    function mdLite(s) {
-      return escapeHTML(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    }
-
+    function mdLite(s) { return escapeHTML(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); }
     function renderChat() {
       const el = $("chat-log");
       if (!chatMessages.length) {
-        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「今天时间花在哪了」。</div>`;
+        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「对照计划我还差哪些」。</div>`;
         return;
       }
       el.innerHTML = chatMessages.map((m) => `
@@ -416,12 +837,10 @@
         </div>`).join("");
       el.scrollTop = el.scrollHeight;
     }
-
     async function sendChat(text) {
       const input = $("chat-input");
       const q = (text != null ? text : input.value).trim();
       if (!q) return;
-      // History = the conversation so far (before this question).
       const history = chatMessages.map((m) => ({ role: m.role, content: m.content }));
       chatMessages.push({ role: "user", content: q });
       const placeholder = { role: "assistant", content: "…" };
@@ -441,31 +860,30 @@
       }
     }
 
+    // --- Wire up ---
+    $("plan-gen").onclick = genDailyPlan;
+    $("plan-add-btn").onclick = addPlanItem;
+    $("plan-add").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPlanItem(); } });
+    $("review-gen").onclick = genDailyReview;
+    $("wplan-gen").onclick = genWeekPlan;
+    $("wplan-add-btn").onclick = addWeekItem;
+    $("wplan-add").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addWeekItem(); } });
+    $("wreview-gen").onclick = genWeekReview;
+
     $("chat-send").onclick = () => sendChat();
-    $("chat-input").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); sendChat(); }
-    });
-    document.querySelectorAll(".chip").forEach((b) => {
-      b.onclick = () => sendChat(b.dataset.q);
-    });
+    $("chat-input").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendChat(); } });
+    document.querySelectorAll(".chip").forEach((b) => { b.onclick = () => sendChat(b.dataset.q); });
     renderChat();
 
-    // Wire up
     $("entry-save").onclick = saveEntry;
-    $("entry").addEventListener("keydown", (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); saveEntry(); }
-    });
+    $("entry").addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); saveEntry(); } });
     $("task-start").onclick = startTask;
-    $("task-name").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { e.preventDefault(); startTask(); }
-    });
+    $("task-name").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); startTask(); } });
     $("summarize").onclick = summarize;
 
-    // Auto-tick the running-task elapsed time once a minute.
     setInterval(() => { if (state) render(); }, 60 * 1000);
 
-    // Sum raw activity segments (one per focus stretch) into totals by name,
-    // sorted by time spent — the actually-useful view.
+    // --- Activity log (unchanged) ---
     function aggregate(records, keyOf) {
       const totals = new Map();
       for (const r of records || []) {
@@ -475,44 +893,30 @@
       }
       return [...totals.entries()].sort((a, b) => b[1] - a[1]);
     }
-
     let trackerEnabled = true;
-
     function renderTrackerStatus(status) {
       const el = $("tracker-status");
       const btn = $("tracker-toggle");
       if (!status.supported) {
-        el.textContent = "· 仅支持 macOS";
-        el.style.color = "var(--muted)";
-        btn.style.display = "none";
-        return;
+        el.textContent = "· 仅支持 macOS"; el.style.color = "var(--muted)"; btn.style.display = "none"; return;
       }
       trackerEnabled = status.enabled;
       btn.textContent = status.enabled ? "暂停追踪" : "继续追踪";
       if (status.running) {
         const now = status.current ? `：${status.current.app}` : "";
-        el.textContent = "· 追踪中" + now;
-        el.style.color = "var(--good)";
+        el.textContent = "· 追踪中" + now; el.style.color = "var(--good)";
       } else if (!status.enabled) {
-        el.textContent = "· 已暂停";
-        el.style.color = "var(--muted)";
+        el.textContent = "· 已暂停"; el.style.color = "var(--muted)";
       } else if (status.lastError) {
-        el.textContent = "· 受限（检查系统权限）";
-        el.style.color = "var(--accent)";
+        el.textContent = "· 受限（检查系统权限）"; el.style.color = "var(--accent)";
       } else {
-        el.textContent = "· 未运行";
-        el.style.color = "var(--muted)";
+        el.textContent = "· 未运行"; el.style.color = "var(--muted)";
       }
     }
-
-    // Fetch and render activity data
     async function refreshActivities() {
       try {
         renderTrackerStatus(await api("/api/activities/status"));
-
         const activities = await api(`/api/activities/${state.date}`);
-
-        // App usage — aggregated by app, sorted by time, with proportional bars.
         const appsHost = $("activity-apps");
         const apps = aggregate(activities.apps, a => a.name || a.bundleId);
         if (apps.length > 0) {
@@ -530,15 +934,11 @@
                     <div style="width:${Math.max(3, Math.round(ms / max * 100))}%;height:100%;background:var(--accent);opacity:0.7;"></div>
                   </div>
                   <div style="flex:0 0 auto;color:var(--muted);font-variant-numeric:tabular-nums;">${fmtDuration(ms)}</div>
-                </div>
-              `).join("")}
-            </div>
-          `;
+                </div>`).join("")}
+            </div>`;
         } else {
           appsHost.innerHTML = `<div class="empty">暂无 App 使用记录。需在「系统设置 → 隐私与安全性 → 辅助功能」勾选运行服务器的终端。</div>`;
         }
-
-        // Window titles — what was actually on screen.
         const windowsHost = $("activity-windows");
         const windows = aggregate(activities.windows, w => w.title);
         if (windows.length > 0) {
@@ -549,15 +949,9 @@
                 <div style="display:flex;gap:10px;font-size:12px;">
                   <div style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(title)}">${escapeHTML(title)}</div>
                   <div style="color:var(--muted);font-variant-numeric:tabular-nums;">${fmtDuration(ms)}</div>
-                </div>
-              `).join("")}
-            </div>
-          `;
-        } else {
-          windowsHost.innerHTML = "";
-        }
-
-        // Screenshots
+                </div>`).join("")}
+            </div>`;
+        } else { windowsHost.innerHTML = ""; }
         const screenshotsHost = $("activity-screenshots");
         if (activities.screenshots && activities.screenshots.length > 0) {
           screenshotsHost.innerHTML = `
@@ -567,22 +961,13 @@
                 <div style="flex-shrink:0;width:120px;">
                   <img src="/data/screenshots/${state.date}/${s.filename}"
                        style="width:100%;border-radius:6px;border:1px solid var(--line);"
-                       alt="screenshot"
-                       onerror="this.style.display='none'" />
+                       alt="screenshot" onerror="this.style.display='none'" />
                   <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:2px;">${fmtTime(s.ts)}</div>
-                </div>
-              `).join("")}
-            </div>
-          `;
-        } else {
-          screenshotsHost.innerHTML = "";
-        }
-      } catch (err) {
-        console.error("Activity fetch failed:", err);
-      }
+                </div>`).join("")}
+            </div>`;
+        } else { screenshotsHost.innerHTML = ""; }
+      } catch (err) { console.error("Activity fetch failed:", err); }
     }
-
-    // Pause / resume tracking.
     $("tracker-toggle").onclick = async () => {
       try {
         const res = await api("/api/tracker/toggle", { method: "POST", body: { enabled: !trackerEnabled } });
@@ -590,15 +975,12 @@
         toast(res.enabled ? "追踪已继续" : "追踪已暂停");
       } catch (err) { toast("出错了：" + err.message); }
     };
-
-    // Auto-refresh activities every 30 seconds
     setInterval(() => { if (state) refreshActivities(); }, 30 * 1000);
 
+    // --- boot ---
     refresh()
-      .then(refreshActivities)
-      .catch((err) => {
-        $("meta").textContent = "出错了：" + err.message;
-      });
+      .then(() => { loadCalToday(); refreshActivities(); refreshBanner(); })
+      .catch((err) => { $("meta").textContent = "出错了：" + err.message; });
   </script>
 </body>
 </html>
