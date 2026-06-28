@@ -41,6 +41,7 @@ import {
 } from "./planner.js";
 import { getRoutines, updateRoutine, runRoutine, startRoutines } from "./routines.js";
 import { fetchCalendarSafe, eventsForDate, eventsForWeek } from "./calendar.js";
+import { resolveRange, datesBetween, weekIdsBetween, renderHistoryForChat } from "./history.js";
 
 // Configure multer for screenshot uploads
 const upload = multer({
@@ -145,13 +146,32 @@ app.post("/api/summarize", async (req, res) => {
   }
 });
 
-// Conversational Q&A about today ("what did I do in the past hour?").
+// Conversational Q&A. Scopes to today for intraday questions ("过去一小时"), or
+// resolves a past day/week/month range ("上周做了什么") and feeds the model a
+// compact history digest spanning it.
 app.post("/api/ask", async (req, res) => {
   try {
     const { question, history } = req.body || {};
-    const day = await loadDay(todayString());
-    const result = await ask(day, question, history);
-    res.json(result);
+    const date = todayString();
+    const day = await loadDay(date);
+
+    const range = resolveRange(question || "", date);
+    let historyContext = "";
+    if (range.scope === "range") {
+      const dates = datesBetween(range.start, range.end);
+      const days = [];
+      for (const d of dates) days.push(await loadDay(d));
+      let weeks = [];
+      if (range.includeWeeks) {
+        for (const weekId of weekIdsBetween(range.start, range.end)) {
+          weeks.push(await loadWeek(weekId, weekRangeForDate(range.start)));
+        }
+      }
+      historyContext = renderHistoryForChat(days, weeks, range);
+    }
+
+    const result = await ask(day, question, history, { historyContext, rangeLabel: range.label });
+    res.json({ ...result, range: { label: range.label, start: range.start, end: range.end } });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

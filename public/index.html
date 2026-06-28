@@ -270,15 +270,17 @@
       </div>
 
       <div class="card">
-        <h2>问问今天</h2>
+        <h2>问问 Notch <span style="font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);font-size:11px;">· 可跨天、跨周</span></h2>
         <div class="chat-log" id="chat-log"></div>
         <div class="row" style="margin-top: 10px;">
-          <input type="text" id="chat-input" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
+          <input type="text" id="chat-input" placeholder="例如：我这周做了什么？上周的复盘？" autocomplete="off"/>
           <button class="primary" id="chat-send">发送</button>
         </div>
         <div class="chips">
           <button class="ghost chip" data-q="我过去一小时做了什么？">过去一小时</button>
-          <button class="ghost chip" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
+          <button class="ghost chip" data-q="我这周主要在做什么？有什么进展？">这周</button>
+          <button class="ghost chip" data-q="上周我做了什么？把上周的复盘讲给我听">上周</button>
+          <button class="ghost chip" data-q="这个月我在求职上推进了哪些？">这个月·求职</button>
           <button class="ghost chip" data-q="对照今天的计划，我还有哪些没做？">对照计划</button>
         </div>
       </div>
@@ -828,7 +830,7 @@
     function renderChat() {
       const el = $("chat-log");
       if (!chatMessages.length) {
-        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「对照计划我还差哪些」。</div>`;
+        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「这周有什么进展」「上周的复盘」「这个月求职推进了哪些」。</div>`;
         return;
       }
       el.innerHTML = chatMessages.map((m) => `
@@ -850,7 +852,11 @@
       $("chat-send").disabled = true;
       try {
         const res = await api("/api/ask", { method: "POST", body: { question: q, history } });
-        placeholder.content = res.text || "(没有内容)";
+        const r = res.range;
+        const scopeNote = r && r.label && r.label !== "今天"
+          ? `📅 ${r.label}${r.start !== r.end ? ` · ${r.start} ~ ${r.end}` : ` · ${r.start}`}\n\n`
+          : "";
+        placeholder.content = scopeNote + (res.text || "(没有内容)");
       } catch (err) {
         placeholder.content = "出错了：" + err.message;
       } finally {

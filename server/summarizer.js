@@ -205,15 +205,18 @@ export async function summarize(day, slot = "adhoc") {
 // hour?", "where did my time go?"). Time-aware: the prompt includes the current
 // clock and a timestamped activity timeline so the model can scope answers.
 
-const CHAT_SYSTEM = `You are Chloe's personal work-journal assistant. She asks questions about her own day and you answer ONLY from the tracked data given below: her task timers, her notes, and an auto-tracked timeline of which apps/windows she had in focus (each line stamped with the local time it ended).
+const CHAT_SYSTEM = `You are Chloe's personal work-journal assistant. She asks questions about her own work history and you answer ONLY from the data given below. Two kinds of data may be present:
+- TODAY (always): her task timers, notes, and an auto-tracked timeline of which apps/windows she had in focus (each line stamped with the local time it ended).
+- EARLIER (when she asks about the past): a compact digest spanning past days/weeks — daily plans (with completion), daily reviews, daily summaries, task totals, and weekly plans/reviews. Use this to answer "上周做了什么 / 这个月推进了什么 / 周二干了啥".
 
 Guidelines:
 - Reply in the same language she asks in (usually Chinese). Keep it tight.
-- When she asks about a time window ("过去一小时" / "the past hour" / "下午" / "刚才"), use the timestamps and the current time below to scope the answer.
-- ALWAYS synthesize, never transcribe. Do NOT produce a timestamped or per-window log — she can see the raw timeline elsewhere. Instead:
-  1. Open with a one-sentence headline of what the period was mostly about.
-  2. Group the activity into a few meaningful themes/categories (e.g. 编程/开发, 浏览/调研, 求职, 沟通, 写作/笔记, 杂务) with a rough time estimate for each.
-  3. Add 1–3 sentences of narrative on what she was actually working on, pulling out anything notable (a specific repo, a job application, a doc). Fold near-duplicate window titles together and ignore noise like "New Tab" or "High memory usage".
+- Scope to what she asked. For an intraday window ("过去一小时" / "刚才" / "下午") use today's timestamps + the current time. For a past day/week/month, use the EARLIER digest.
+- ALWAYS synthesize, never transcribe. Do NOT dump a timestamped or per-day log. Instead:
+  1. Open with a one-sentence headline answering her question.
+  2. Group into a few meaningful themes (e.g. 编程/开发, 浏览/调研, 求职, 沟通, 写作/笔记, 杂务), or for a multi-day question, group by project/theme and note progress/trends across days.
+  3. Add 1–3 sentences of narrative, pulling out anything notable (a specific repo, a job application, a decision, a pattern). Fold near-duplicates together; ignore noise like "New Tab".
+- When she asks about plans/reviews/progress, lean on the plan-completion and review text in the digest.
 - If the data doesn't cover what she asks, say so plainly. Never invent activity that isn't in the data.`;
 
 // A detailed, timestamped rendering for Q&A (vs. the aggregate one used for
@@ -263,7 +266,7 @@ export function renderDayContextForChat(day, now = new Date()) {
   return lines.join("\n");
 }
 
-async function callAnthropicChat({ apiKey, model, system, messages }) {
+async function callAnthropicChat({ apiKey, model, system, messages, maxTokens = 1024 }) {
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -271,7 +274,7 @@ async function callAnthropicChat({ apiKey, model, system, messages }) {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({ model, max_tokens: 1024, system, messages }),
+    body: JSON.stringify({ model, max_tokens: maxTokens, system, messages }),
   });
   if (!res.ok) {
     const body = await res.text();
@@ -394,15 +397,31 @@ function fallbackAnswer(day, q) {
   return lines.join("\n");
 }
 
-export async function ask(day, question, history = []) {
+export async function ask(day, question, history = [], opts = {}) {
   const q = String(question || "").trim();
   if (!q) throw new Error("Question is required");
+  const { historyContext = "", rangeLabel = "" } = opts;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-  if (!apiKey) return { text: fallbackAnswer(day, q), model: null };
+  if (!apiKey) {
+    // Without a key: if the question spans past days, the digest is already a
+    // readable summary — hand it back directly; else use the today-window logic.
+    if (historyContext) {
+      return {
+        text:
+          `**${rangeLabel || "这段时间"}的记录**\n\n${historyContext}\n\n` +
+          "_（无 AI key：这是按你的问题范围拉出的原始汇总；填入 ANTHROPIC_API_KEY 后会换成 Claude 写的连贯回答。）_",
+        model: null,
+      };
+    }
+    return { text: fallbackAnswer(day, q), model: null };
+  }
 
-  const system = CHAT_SYSTEM + "\n\n---\n\n" + renderDayContextForChat(day, new Date());
+  let system = CHAT_SYSTEM + "\n\n---\n\n## 今天\n" + renderDayContextForChat(day, new Date());
+  if (historyContext) {
+    system += `\n\n---\n\n## 更早的记录（${rangeLabel}）\n${historyContext}`;
+  }
 
   // Sanitize prior turns: valid roles, non-empty, must start with a user turn.
   const clean = (Array.isArray(history) ? history : [])
@@ -419,7 +438,10 @@ export async function ask(day, question, history = []) {
 
   const messages = [...clean, { role: "user", content: q }];
   try {
-    const text = await callAnthropicChat({ apiKey, model, system, messages });
+    const text = await callAnthropicChat({
+      apiKey, model, system, messages,
+      maxTokens: historyContext ? 1600 : 1024,
+    });
     return { text: text || "(没有内容)", model };
   } catch (err) {
     console.error("[ask] LLM call failed:", err.message);
