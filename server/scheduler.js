@@ -11,11 +11,11 @@ function parseHHMM(s) {
 
 const SLOT_FOR_HOUR = (h) => {
   if (h < 13) return "noon";
-  if (h < 17) return "afternoon";
-  return "evening";
+  if (h < 20) return "evening";
+  return "night";
 };
 
-export function startScheduler({ schedule = "12:00,15:00,18:00" } = {}) {
+export function startScheduler({ schedule = "12:00,18:00,21:00" } = {}) {
   const times = schedule.split(",").map((t) => parseHHMM(t.trim()));
   // Track which (date, slotIndex) combos we've already fired for, so a single
   // long-running server doesn't double-fire across the same day.

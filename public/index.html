@@ -113,6 +113,18 @@
     .totals strong { color: var(--ink); }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+    .chat-log { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; padding: 2px; }
+    .chat-msg { display: flex; }
+    .chat-msg.user { justify-content: flex-end; }
+    .chat-msg .bubble {
+      max-width: 82%; padding: 9px 13px; border-radius: 13px; font-size: 14px;
+      line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-msg.user .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-msg.assistant .bubble { background: #f3efe9; color: var(--ink); border-bottom-left-radius: 4px; }
+    .chat-msg.assistant .bubble strong { color: var(--ink); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; }
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: #1a1a1a; color: #fff;
@@ -149,6 +161,20 @@
         <button class="primary" id="entry-save">保存</button>
         <button class="ghost" id="summarize">现在总结</button>
         <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>问问今天</h2>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="row" style="margin-top: 10px;">
+        <input type="text" id="chat-input" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
+        <button class="primary" id="chat-send">发送</button>
+      </div>
+      <div class="chips">
+        <button class="ghost chip" data-q="我过去一小时做了什么？">过去一小时</button>
+        <button class="ghost chip" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
+        <button class="ghost chip" data-q="我今天的时间主要花在哪些事情上？">时间花哪了</button>
       </div>
     </div>
 
@@ -301,7 +327,8 @@
       return ({
         noon: "午间小结",
         afternoon: "下午小结",
-        evening: "晚间收尾",
+        evening: "晚间小结",
+        night: "夜间收尾",
         adhoc: "即时小结",
       }[slot] || "小结");
     }
@@ -369,6 +396,59 @@
         btn.textContent = "现在总结";
       }
     }
+
+    // --- Chat / Q&A about today ---
+    const chatMessages = [];
+
+    function mdLite(s) {
+      return escapeHTML(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    }
+
+    function renderChat() {
+      const el = $("chat-log");
+      if (!chatMessages.length) {
+        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「今天时间花在哪了」。</div>`;
+        return;
+      }
+      el.innerHTML = chatMessages.map((m) => `
+        <div class="chat-msg ${m.role}">
+          <div class="bubble">${m.role === "assistant" ? mdLite(m.content) : escapeHTML(m.content)}</div>
+        </div>`).join("");
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function sendChat(text) {
+      const input = $("chat-input");
+      const q = (text != null ? text : input.value).trim();
+      if (!q) return;
+      // History = the conversation so far (before this question).
+      const history = chatMessages.map((m) => ({ role: m.role, content: m.content }));
+      chatMessages.push({ role: "user", content: q });
+      const placeholder = { role: "assistant", content: "…" };
+      chatMessages.push(placeholder);
+      input.value = "";
+      renderChat();
+      $("chat-send").disabled = true;
+      try {
+        const res = await api("/api/ask", { method: "POST", body: { question: q, history } });
+        placeholder.content = res.text || "(没有内容)";
+      } catch (err) {
+        placeholder.content = "出错了：" + err.message;
+      } finally {
+        $("chat-send").disabled = false;
+        renderChat();
+        input.focus();
+      }
+    }
+
+    $("chat-send").onclick = () => sendChat();
+    $("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); sendChat(); }
+    });
+    document.querySelectorAll(".chip").forEach((b) => {
+      b.onclick = () => sendChat(b.dataset.q);
+    });
+    renderChat();
 
     // Wire up
     $("entry-save").onclick = saveEntry;

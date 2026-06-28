@@ -22,7 +22,7 @@ import {
   loadActivities,
   todayString,
 } from "./storage.js";
-import { summarize } from "./summarizer.js";
+import { summarize, ask } from "./summarizer.js";
 import { startScheduler } from "./scheduler.js";
 import { startTracking, toggleTracking, setEnabled, getStatus } from "./tracker.js";
 
@@ -80,7 +80,7 @@ app.get("/api/today", async (_req, res) => {
       dataDir: getDataDir(),
       hasLLM: Boolean(process.env.ANTHROPIC_API_KEY),
       model: process.env.ANTHROPIC_MODEL || null,
-      schedule: process.env.SUMMARY_SCHEDULE || "12:00,15:00,18:00",
+      schedule: process.env.SUMMARY_SCHEDULE || "12:00,18:00,21:00",
     },
   });
 });
@@ -124,6 +124,18 @@ app.post("/api/summarize", async (req, res) => {
     res.json(saved);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Conversational Q&A about today ("what did I do in the past hour?").
+app.post("/api/ask", async (req, res) => {
+  try {
+    const { question, history } = req.body || {};
+    const day = await loadDay(todayString());
+    const result = await ask(day, question, history);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -209,7 +221,7 @@ app.listen(PORT, () => {
   console.log(`LittleJot running at http://localhost:${PORT}`);
   console.log(`  data dir:        ${getDataDir()}`);
   console.log(`  AI summaries:    ${process.env.ANTHROPIC_API_KEY ? "ON (" + (process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6") + ")" : "OFF (set ANTHROPIC_API_KEY in .env)"}`);
-  console.log(`  schedule:        ${process.env.SUMMARY_SCHEDULE || "12:00,15:00,18:00"}`);
+  console.log(`  schedule:        ${process.env.SUMMARY_SCHEDULE || "12:00,18:00,21:00"}`);
   console.log(`  activity track:  ${TRACKING_ON ? "ON (needs Accessibility + Screen Recording perms)" : "OFF (TRACKING=off)"}`);
 });
 
