@@ -1,7 +1,7 @@
 {
-  "name": "littlejot",
+  "name": "notch",
   "version": "0.1.0",
-  "description": "LittleJot — 私人工作日志 with activity tracking",
+  "description": "Notch · 日迹 — 私人工作日志 with activity tracking",
   "type": "module",
   "main": "server/index.js",
   "scripts": {

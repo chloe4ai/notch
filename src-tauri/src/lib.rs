@@ -1,4 +1,4 @@
-// LittleJot desktop app — a thin native window onto the local web UI.
+// Notch desktop app — a thin native window onto the local web UI.
 //
 // Activity tracking now lives in the Node server (server/tracker.js), so this
 // app intentionally does NOT run the old Rust tracker — otherwise the two would
@@ -28,7 +28,7 @@ fn show_main<R: Runtime>(app: &tauri::AppHandle<R>) {
 
 fn build_main<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
     WebviewWindowBuilder::new(app, "main", WebviewUrl::External(APP_URL.parse().unwrap()))
-        .title("LittleJot · 日迹")
+        .title("Notch · 日迹")
         .inner_size(900.0, 820.0)
         .min_inner_size(620.0, 520.0)
         .build()?;
@@ -36,7 +36,7 @@ fn build_main<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 }
 
 fn create_tray_menu<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<Menu<R>> {
-    let open = MenuItem::with_id(app, "open", "打开 LittleJot", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "打开 Notch", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
     Menu::with_items(app, &[&open, &quit])
 }
@@ -48,7 +48,7 @@ fn setup_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
 
     let _tray = TrayIconBuilder::new()
         .menu(&menu)
-        .tooltip("LittleJot · 日迹")
+        .tooltip("Notch · 日迹")
         .icon(icon)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -87,7 +87,7 @@ pub fn run() {
         .format_timestamp_millis()
         .init();
 
-    log::info!("Starting LittleJot desktop app");
+    log::info!("Starting Notch desktop app");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
