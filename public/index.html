@@ -24,12 +24,21 @@
     }
     .wrap { max-width: 880px; margin: 0 auto; padding: 28px 24px 80px; }
     header {
-      display: flex; justify-content: space-between; align-items: baseline;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 16px;
       margin-bottom: 24px;
     }
     header h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
-    header .meta { font-size: 12px; color: var(--muted); }
+    header .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    header .meta { font-size: 12px; color: var(--muted); text-align: right; }
     header .meta code { background: #f0ece6; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    select#lang-select {
+      font: inherit; font-size: 12px;
+      padding: 4px 8px; border-radius: 7px;
+      border: 1px solid var(--line); background: #fff; color: var(--ink);
+      cursor: pointer; outline: none;
+    }
+    select#lang-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -140,58 +149,65 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>日迹 <span style="font-size:13px;color:var(--muted);font-weight:normal;letter-spacing:0;">· 一天的痕迹</span></h1>
-      <div class="meta" id="meta"></div>
+      <h1><span data-i18n="brand">日迹</span> <span data-i18n="tagline" style="font-size:13px;color:var(--muted);font-weight:normal;letter-spacing:0;">· 一天的痕迹</span></h1>
+      <div class="head-right">
+        <select id="lang-select" aria-label="Language">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+        <div class="meta" id="meta"></div>
+      </div>
     </header>
 
     <div class="card">
-      <h2>正在做的事</h2>
+      <h2 data-i18n="card.now">正在做的事</h2>
       <div id="running-host"></div>
       <div class="row">
-        <input type="text" id="task-name" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
-        <button class="primary" id="task-start">开始</button>
+        <input type="text" id="task-name" data-i18n-ph="now.placeholder" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
+        <button class="primary" id="task-start" data-i18n="now.start">开始</button>
       </div>
-      <div class="hint">开始新任务时，上一个任务会自动停下来。</div>
+      <div class="hint" data-i18n="now.hint">开始新任务时，上一个任务会自动停下来。</div>
     </div>
 
     <div class="card">
-      <h2>随手记一笔</h2>
-      <textarea id="entry" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
+      <h2 data-i18n="card.note">随手记一笔</h2>
+      <textarea id="entry" data-i18n-ph="note.placeholder" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
       <div class="row" style="margin-top: 10px;">
-        <button class="primary" id="entry-save">保存</button>
-        <button class="ghost" id="summarize">现在总结</button>
+        <button class="primary" id="entry-save" data-i18n="note.save">保存</button>
+        <button class="ghost" id="summarize" data-i18n="note.summarizeNow">现在总结</button>
         <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
       </div>
     </div>
 
     <div class="card">
-      <h2>问问今天</h2>
+      <h2 data-i18n="card.ask">问问今天</h2>
       <div class="chat-log" id="chat-log"></div>
       <div class="row" style="margin-top: 10px;">
-        <input type="text" id="chat-input" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
-        <button class="primary" id="chat-send">发送</button>
+        <input type="text" id="chat-input" data-i18n-ph="ask.placeholder" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
+        <button class="primary" id="chat-send" data-i18n="ask.send">发送</button>
       </div>
       <div class="chips">
-        <button class="ghost chip" data-q="我过去一小时做了什么？">过去一小时</button>
-        <button class="ghost chip" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
-        <button class="ghost chip" data-q="我今天的时间主要花在哪些事情上？">时间花哪了</button>
+        <button class="ghost chip" data-chip="pastHour" data-q="我过去一小时做了什么？">过去一小时</button>
+        <button class="ghost chip" data-chip="today" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
+        <button class="ghost chip" data-chip="timeWhere" data-q="我今天的时间主要花在哪些事情上？">时间花哪了</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>今天</h2>
+      <h2 data-i18n="card.today">今天</h2>
       <div class="totals" id="totals"></div>
       <ul class="timeline" id="timeline"></ul>
     </div>
 
     <div class="card">
-      <h2>小结</h2>
+      <h2 data-i18n="card.summaries">小结</h2>
       <div id="summaries"></div>
     </div>
 
     <div class="card">
       <h2 style="display:flex;align-items:center;gap:8px;">
-        活动日志
+        <span data-i18n="card.activity">活动日志</span>
         <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
         <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">暂停追踪</button>
       </h2>
@@ -205,6 +221,273 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+
+    // --- i18n -----------------------------------------------------------------
+    // Flat, dotted-key dictionaries. Strings may contain {placeholders} which
+    // t() substitutes, and a little inline HTML (kept identical across langs).
+    const I18N = {
+      zh: {
+        "title": "日迹",
+        "brand": "日迹",
+        "tagline": "· 一天的痕迹",
+        "card.now": "正在做的事",
+        "now.placeholder": "例如：改简历 - Stripe PM",
+        "now.start": "开始",
+        "now.hint": "开始新任务时，上一个任务会自动停下来。",
+        "now.since": "从 {time} 开始",
+        "now.stop": "停下",
+        "now.empty": "暂时没有正在进行的任务。在下面开一个。",
+        "card.note": "随手记一笔",
+        "note.placeholder": "脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。",
+        "note.save": "保存",
+        "note.summarizeNow": "现在总结",
+        "note.summarizing": "整理中…",
+        "card.ask": "问问今天",
+        "ask.placeholder": "例如：我过去一小时做了什么？",
+        "ask.send": "发送",
+        "chip.pastHour.label": "过去一小时",
+        "chip.pastHour.q": "我过去一小时做了什么？",
+        "chip.today.label": "总结今天",
+        "chip.today.q": "帮我总结一下今天到现在做了什么",
+        "chip.timeWhere.label": "时间花哪了",
+        "chip.timeWhere.q": "我今天的时间主要花在哪些事情上？",
+        "chat.empty": "问点什么吧——「我过去一小时做了什么」「今天时间花在哪了」。",
+        "chat.noContent": "(没有内容)",
+        "chat.error": "出错了：",
+        "card.today": "今天",
+        "totals.notes": "<strong>{n}</strong> 条想法",
+        "totals.tasks": "<strong>{n}</strong> 段任务",
+        "totals.total": "共 <strong>{dur}</strong>",
+        "timeline.empty": "今天还没有任何记录。随手记一笔，或者开始一项任务。",
+        "pill.start": "▶ 开始",
+        "pill.end": "■ 结束",
+        "card.summaries": "小结",
+        "summaries.empty": "还没有小结。点「现在总结」即时生成，或者等到设定时间自动出。",
+        "summaries.noModel": "纯聚合（无 AI）",
+        "slot.noon": "午间小结",
+        "slot.afternoon": "下午小结",
+        "slot.evening": "晚间小结",
+        "slot.night": "夜间收尾",
+        "slot.adhoc": "即时小结",
+        "card.activity": "活动日志",
+        "tracker.macOnly": "· 仅支持 macOS",
+        "tracker.pause": "暂停追踪",
+        "tracker.resume": "继续追踪",
+        "tracker.tracking": "· 追踪中",
+        "tracker.appSep": "：",
+        "tracker.paused": "· 已暂停",
+        "tracker.limited": "· 受限（检查系统权限）",
+        "tracker.idle": "· 未运行",
+        "act.appsSummary": "共 <strong>{n}</strong> 个 App · 前台 {dur}",
+        "act.appsEmpty": "暂无 App 使用记录。需在「系统设置 → 隐私与安全性 → 辅助功能」勾选运行服务器的终端。",
+        "act.windowsLabel": "看过的窗口",
+        "act.screenshots": "截图 ({n})",
+        "meta.data": "数据 →",
+        "meta.ai": "AI：",
+        "meta.on": "已开",
+        "meta.off": "未启用",
+        "meta.autoSummary": "自动小结：",
+        "toast.saved": "已记下",
+        "toast.taskStarted": "任务已开始",
+        "toast.taskStopped": "任务已停",
+        "toast.summaryDone": "小结生成",
+        "toast.trackResumed": "追踪已继续",
+        "toast.trackPaused": "追踪已暂停",
+        "toast.failedPrefix": "失败：",
+        "toast.errPrefix": "出错了：",
+      },
+      en: {
+        "title": "Notch · traces of a day",
+        "brand": "Notch",
+        "tagline": "· traces of a day",
+        "card.now": "Now",
+        "now.placeholder": "e.g. Resume edit - Stripe PM",
+        "now.start": "Start",
+        "now.hint": "Starting a new task automatically stops the previous one.",
+        "now.since": "since {time}",
+        "now.stop": "Stop",
+        "now.empty": "Nothing in progress right now. Start something below.",
+        "card.note": "Quick note",
+        "note.placeholder": "Whatever's on your mind. ⌘+Enter to save. Dictation (Typeless) works too.",
+        "note.save": "Save",
+        "note.summarizeNow": "Summarize now",
+        "note.summarizing": "Summarizing…",
+        "card.ask": "Ask today",
+        "ask.placeholder": "e.g. What did I do in the past hour?",
+        "ask.send": "Send",
+        "chip.pastHour.label": "Past hour",
+        "chip.pastHour.q": "What did I do in the past hour?",
+        "chip.today.label": "Recap today",
+        "chip.today.q": "Summarize what I've done today so far",
+        "chip.timeWhere.label": "Where time went",
+        "chip.timeWhere.q": "What did I mostly spend my time on today?",
+        "chat.empty": "Ask something — “what did I do in the past hour”, “where did my time go today”.",
+        "chat.noContent": "(empty)",
+        "chat.error": "Error: ",
+        "card.today": "Today",
+        "totals.notes": "<strong>{n}</strong> notes",
+        "totals.tasks": "<strong>{n}</strong> tasks",
+        "totals.total": "<strong>{dur}</strong> total",
+        "timeline.empty": "Nothing logged today yet. Jot a note, or start a task.",
+        "pill.start": "▶ start",
+        "pill.end": "■ end",
+        "card.summaries": "Summaries",
+        "summaries.empty": "No summaries yet. Hit “Summarize now” for one instantly, or wait for the scheduled ones.",
+        "summaries.noModel": "plain aggregate (no AI)",
+        "slot.noon": "Noon update",
+        "slot.afternoon": "Afternoon update",
+        "slot.evening": "Evening wrap",
+        "slot.night": "Night wrap",
+        "slot.adhoc": "Update",
+        "card.activity": "Activity log",
+        "tracker.macOnly": "· macOS only",
+        "tracker.pause": "Pause tracking",
+        "tracker.resume": "Resume tracking",
+        "tracker.tracking": "· tracking",
+        "tracker.appSep": ": ",
+        "tracker.paused": "· paused",
+        "tracker.limited": "· limited (check system permissions)",
+        "tracker.idle": "· not running",
+        "act.appsSummary": "<strong>{n}</strong> apps · {dur} in foreground",
+        "act.appsEmpty": "No app usage yet. Enable the terminal running the server in System Settings → Privacy & Security → Accessibility.",
+        "act.windowsLabel": "Windows seen",
+        "act.screenshots": "Screenshots ({n})",
+        "meta.data": "data →",
+        "meta.ai": "AI: ",
+        "meta.on": "on",
+        "meta.off": "off",
+        "meta.autoSummary": "auto-summary: ",
+        "toast.saved": "Saved",
+        "toast.taskStarted": "Task started",
+        "toast.taskStopped": "Task stopped",
+        "toast.summaryDone": "Summary ready",
+        "toast.trackResumed": "Tracking resumed",
+        "toast.trackPaused": "Tracking paused",
+        "toast.failedPrefix": "Failed: ",
+        "toast.errPrefix": "Error: ",
+      },
+      ja: {
+        "title": "日迹",
+        "brand": "日迹",
+        "tagline": "· 一日の痕跡",
+        "card.now": "いま取り組んでいること",
+        "now.placeholder": "例：履歴書の修正 - Stripe PM",
+        "now.start": "開始",
+        "now.hint": "新しいタスクを始めると、前のタスクは自動的に止まります。",
+        "now.since": "{time} から",
+        "now.stop": "停止",
+        "now.empty": "進行中のタスクはありません。下から始めましょう。",
+        "card.note": "ひとことメモ",
+        "note.placeholder": "頭に浮かんだことを何でも。⌘+Enter で保存。Typeless で音声入力も可。",
+        "note.save": "保存",
+        "note.summarizeNow": "今すぐまとめる",
+        "note.summarizing": "まとめ中…",
+        "card.ask": "今日について聞く",
+        "ask.placeholder": "例：直近1時間で何をした？",
+        "ask.send": "送信",
+        "chip.pastHour.label": "直近1時間",
+        "chip.pastHour.q": "直近1時間で何をしましたか？",
+        "chip.today.label": "今日のまとめ",
+        "chip.today.q": "今日これまでにやったことをまとめて",
+        "chip.timeWhere.label": "時間の使い道",
+        "chip.timeWhere.q": "今日は主に何に時間を使いましたか？",
+        "chat.empty": "何か聞いてみましょう——「直近1時間で何をした」「今日の時間の使い道」。",
+        "chat.noContent": "（内容なし）",
+        "chat.error": "エラー：",
+        "card.today": "今日",
+        "totals.notes": "<strong>{n}</strong> 件のメモ",
+        "totals.tasks": "<strong>{n}</strong> 件のタスク",
+        "totals.total": "合計 <strong>{dur}</strong>",
+        "timeline.empty": "今日はまだ記録がありません。メモを書くか、タスクを始めましょう。",
+        "pill.start": "▶ 開始",
+        "pill.end": "■ 終了",
+        "card.summaries": "まとめ",
+        "summaries.empty": "まだまとめがありません。「今すぐまとめる」で即時生成するか、予定時刻の自動生成を待ちましょう。",
+        "summaries.noModel": "集計のみ（AI なし）",
+        "slot.noon": "昼のまとめ",
+        "slot.afternoon": "午後のまとめ",
+        "slot.evening": "夜のまとめ",
+        "slot.night": "一日の締め",
+        "slot.adhoc": "いまのまとめ",
+        "card.activity": "アクティビティログ",
+        "tracker.macOnly": "· macOS のみ対応",
+        "tracker.pause": "追跡を一時停止",
+        "tracker.resume": "追跡を再開",
+        "tracker.tracking": "· 追跡中",
+        "tracker.appSep": "：",
+        "tracker.paused": "· 一時停止中",
+        "tracker.limited": "· 制限あり（システム権限を確認）",
+        "tracker.idle": "· 停止中",
+        "act.appsSummary": "<strong>{n}</strong> 個の App ・前面 {dur}",
+        "act.appsEmpty": "App の使用記録がまだありません。「システム設定 → プライバシーとセキュリティ → アクセシビリティ」でサーバーを実行しているターミナルを許可してください。",
+        "act.windowsLabel": "見たウィンドウ",
+        "act.screenshots": "スクリーンショット ({n})",
+        "meta.data": "データ →",
+        "meta.ai": "AI：",
+        "meta.on": "オン",
+        "meta.off": "無効",
+        "meta.autoSummary": "自動まとめ：",
+        "toast.saved": "記録しました",
+        "toast.taskStarted": "タスクを開始しました",
+        "toast.taskStopped": "タスクを停止しました",
+        "toast.summaryDone": "まとめを生成しました",
+        "toast.trackResumed": "追跡を再開しました",
+        "toast.trackPaused": "追跡を一時停止しました",
+        "toast.failedPrefix": "失敗：",
+        "toast.errPrefix": "エラー：",
+      },
+    };
+
+    const LANG_KEY = "notch.lang";
+    let LANG = (() => {
+      try {
+        const saved = localStorage.getItem(LANG_KEY);
+        if (saved && I18N[saved]) return saved;
+      } catch (_) {}
+      return "zh";
+    })();
+
+    function t(key, params) {
+      const dict = I18N[LANG] || I18N.zh;
+      let s = dict[key];
+      if (s == null) s = I18N.zh[key] != null ? I18N.zh[key] : key;
+      if (params) for (const k in params) s = s.replaceAll("{" + k + "}", params[k]);
+      return s;
+    }
+
+    function slotLabel(slot) {
+      const dict = I18N[LANG] || I18N.zh;
+      return dict["slot." + slot] || dict["slot.adhoc"];
+    }
+
+    // Apply translations to all static, attribute-tagged elements + the chips.
+    function applyStatic() {
+      document.documentElement.lang = LANG;
+      document.title = t("title");
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+        el.placeholder = t(el.dataset.i18nPh);
+      });
+      document.querySelectorAll("[data-chip]").forEach((el) => {
+        const k = el.dataset.chip;
+        el.textContent = t("chip." + k + ".label");
+        el.dataset.q = t("chip." + k + ".q");
+      });
+    }
+
+    function setLang(lang) {
+      if (!I18N[lang]) return;
+      LANG = lang;
+      try { localStorage.setItem(LANG_KEY, lang); } catch (_) {}
+      applyStatic();
+      renderChat();
+      if (state) {
+        render();
+        refreshActivities();
+      }
+    }
 
     function fmtTime(iso) {
       const d = new Date(iso);
@@ -242,10 +525,11 @@
     function render() {
       // Meta line
       const cfg = state.config;
+      const aiVal = cfg.hasLLM ? cfg.model || t("meta.on") : t("meta.off");
       $("meta").innerHTML =
-        `${state.date} · 数据 → <code>${cfg.dataDir}</code> · ` +
-        `AI：<strong>${cfg.hasLLM ? cfg.model || "已开" : "未启用"}</strong> · ` +
-        `自动小结：${cfg.schedule}`;
+        `${state.date} · ${t("meta.data")} <code>${escapeHTML(cfg.dataDir)}</code> · ` +
+        `${t("meta.ai")}<strong>${escapeHTML(aiVal)}</strong> · ` +
+        `${t("meta.autoSummary")}${escapeHTML(cfg.schedule)}`;
 
       // Running task
       const open = state.tasks.find((t) => t.endTs == null);
@@ -256,21 +540,21 @@
           <div class="running">
             <span class="dot"></span>
             <strong>${escapeHTML(open.name)}</strong>
-            <span style="color: var(--muted)">从 ${fmtTime(open.startTs)} 开始 · ${fmtDuration(elapsed)}</span>
-            <button id="stop-btn" style="margin-left:auto;">停下</button>
+            <span style="color: var(--muted)">${t("now.since", { time: fmtTime(open.startTs) })} · ${fmtDuration(elapsed)}</span>
+            <button id="stop-btn" style="margin-left:auto;">${t("now.stop")}</button>
           </div>`;
         $("stop-btn").onclick = stopTask;
       } else {
-        host.innerHTML = `<div class="empty">暂时没有正在进行的任务。在下面开一个。</div>`;
+        host.innerHTML = `<div class="empty">${t("now.empty")}</div>`;
       }
 
       // Totals
       const totalMs = state.tasks.reduce((s, t) =>
         s + (t.durationMs || (t.endTs == null ? Date.now() - new Date(t.startTs).getTime() : 0)), 0);
       $("totals").innerHTML = `
-        <span><strong>${state.entries.length}</strong> 条想法</span>
-        <span><strong>${state.tasks.length}</strong> 段任务</span>
-        <span>共 <strong>${fmtDuration(totalMs)}</strong></span>
+        <span>${t("totals.notes", { n: state.entries.length })}</span>
+        <span>${t("totals.tasks", { n: state.tasks.length })}</span>
+        <span>${t("totals.total", { dur: fmtDuration(totalMs) })}</span>
       `;
 
       // Timeline (entries + tasks merged, newest first)
@@ -285,7 +569,7 @@
 
       const tl = $("timeline");
       if (items.length === 0) {
-        tl.innerHTML = `<li class="empty">今天还没有任何记录。随手记一笔，或者开始一项任务。</li>`;
+        tl.innerHTML = `<li class="empty">${t("timeline.empty")}</li>`;
       } else {
         tl.innerHTML = items.map((i) => {
           if (i.kind === "entry") {
@@ -297,12 +581,12 @@
           if (i.kind === "task-start") {
             return `<li>
               <span class="ts">${fmtTime(i.ts)}</span>
-              <div class="body"><span class="pill task">▶ 开始</span><strong>${escapeHTML(i.data.name)}</strong></div>
+              <div class="body"><span class="pill task">${t("pill.start")}</span><strong>${escapeHTML(i.data.name)}</strong></div>
             </li>`;
           }
           return `<li>
             <span class="ts">${fmtTime(i.ts)}</span>
-            <div class="body"><span class="pill task">■ 结束</span>${escapeHTML(i.data.name)} <span style="color:var(--muted)">(${fmtDuration(i.data.durationMs)})</span></div>
+            <div class="body"><span class="pill task">${t("pill.end")}</span>${escapeHTML(i.data.name)} <span style="color:var(--muted)">(${fmtDuration(i.data.durationMs)})</span></div>
           </li>`;
         }).join("");
       }
@@ -311,26 +595,16 @@
       const sumHost = $("summaries");
       const sums = [...state.summaries].sort((a, b) => new Date(b.ts) - new Date(a.ts));
       if (sums.length === 0) {
-        sumHost.innerHTML = `<div class="empty">还没有小结。点「现在总结」即时生成，或者等到 12:00 / 15:00 / 18:00 自动出。</div>`;
+        sumHost.innerHTML = `<div class="empty">${t("summaries.empty")}</div>`;
       } else {
         sumHost.innerHTML = sums.map((s) => `
           <div class="summary">
             <h3>${escapeHTML(slotLabel(s.slot))}</h3>
-            <div class="when">${fmtTime(s.ts)} · ${s.model || "纯聚合（无 AI）"}</div>
+            <div class="when">${fmtTime(s.ts)} · ${escapeHTML(s.model || t("summaries.noModel"))}</div>
             <pre>${escapeHTML(s.text)}</pre>
           </div>
         `).join("");
       }
-    }
-
-    function slotLabel(slot) {
-      return ({
-        noon: "午间小结",
-        afternoon: "下午小结",
-        evening: "晚间小结",
-        night: "夜间收尾",
-        adhoc: "即时小结",
-      }[slot] || "小结");
     }
 
     function escapeHTML(s) {
@@ -353,9 +627,9 @@
         await api("/api/entries", { method: "POST", body: { text } });
         ta.value = "";
         await refresh();
-        toast("已记下");
+        toast(t("toast.saved"));
       } catch (err) {
-        toast("出错了：" + err.message);
+        toast(t("toast.errPrefix") + err.message);
       } finally {
         $("entry-save").disabled = false;
         ta.focus();
@@ -369,31 +643,31 @@
         await api("/api/tasks/start", { method: "POST", body: { name } });
         $("task-name").value = "";
         await refresh();
-        toast("任务已开始");
-      } catch (err) { toast("Failed: " + err.message); }
+        toast(t("toast.taskStarted"));
+      } catch (err) { toast(t("toast.failedPrefix") + err.message); }
     }
 
     async function stopTask() {
       try {
         await api("/api/tasks/stop", { method: "POST" });
         await refresh();
-        toast("任务已停");
-      } catch (err) { toast("Failed: " + err.message); }
+        toast(t("toast.taskStopped"));
+      } catch (err) { toast(t("toast.failedPrefix") + err.message); }
     }
 
     async function summarize() {
       const btn = $("summarize");
       btn.disabled = true;
-      btn.textContent = "整理中…";
+      btn.textContent = t("note.summarizing");
       try {
-        await api("/api/summarize", { method: "POST", body: { slot: "adhoc" } });
+        await api("/api/summarize", { method: "POST", body: { slot: "adhoc", lang: LANG } });
         await refresh();
-        toast("小结生成");
+        toast(t("toast.summaryDone"));
       } catch (err) {
-        toast("出错了：" + err.message);
+        toast(t("toast.errPrefix") + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = "现在总结";
+        btn.textContent = t("note.summarizeNow");
       }
     }
 
@@ -407,7 +681,7 @@
     function renderChat() {
       const el = $("chat-log");
       if (!chatMessages.length) {
-        el.innerHTML = `<div class="empty">问点什么吧——「我过去一小时做了什么」「今天时间花在哪了」。</div>`;
+        el.innerHTML = `<div class="empty">${t("chat.empty")}</div>`;
         return;
       }
       el.innerHTML = chatMessages.map((m) => `
@@ -430,10 +704,10 @@
       renderChat();
       $("chat-send").disabled = true;
       try {
-        const res = await api("/api/ask", { method: "POST", body: { question: q, history } });
-        placeholder.content = res.text || "(没有内容)";
+        const res = await api("/api/ask", { method: "POST", body: { question: q, history, lang: LANG } });
+        placeholder.content = res.text || t("chat.noContent");
       } catch (err) {
-        placeholder.content = "出错了：" + err.message;
+        placeholder.content = t("chat.error") + err.message;
       } finally {
         $("chat-send").disabled = false;
         renderChat();
@@ -448,7 +722,10 @@
     document.querySelectorAll(".chip").forEach((b) => {
       b.onclick = () => sendChat(b.dataset.q);
     });
-    renderChat();
+
+    // Language switcher.
+    $("lang-select").value = LANG;
+    $("lang-select").onchange = (e) => setLang(e.target.value);
 
     // Wire up
     $("entry-save").onclick = saveEntry;
@@ -460,6 +737,10 @@
       if (e.key === "Enter") { e.preventDefault(); startTask(); }
     });
     $("summarize").onclick = summarize;
+
+    // Initial paint of all static strings + the empty chat state.
+    applyStatic();
+    renderChat();
 
     // Auto-tick the running-task elapsed time once a minute.
     setInterval(() => { if (state) render(); }, 60 * 1000);
@@ -482,25 +763,25 @@
       const el = $("tracker-status");
       const btn = $("tracker-toggle");
       if (!status.supported) {
-        el.textContent = "· 仅支持 macOS";
+        el.textContent = t("tracker.macOnly");
         el.style.color = "var(--muted)";
         btn.style.display = "none";
         return;
       }
       trackerEnabled = status.enabled;
-      btn.textContent = status.enabled ? "暂停追踪" : "继续追踪";
+      btn.textContent = status.enabled ? t("tracker.pause") : t("tracker.resume");
       if (status.running) {
-        const now = status.current ? `：${status.current.app}` : "";
-        el.textContent = "· 追踪中" + now;
+        const now = status.current ? t("tracker.appSep") + status.current.app : "";
+        el.textContent = t("tracker.tracking") + now;
         el.style.color = "var(--good)";
       } else if (!status.enabled) {
-        el.textContent = "· 已暂停";
+        el.textContent = t("tracker.paused");
         el.style.color = "var(--muted)";
       } else if (status.lastError) {
-        el.textContent = "· 受限（检查系统权限）";
+        el.textContent = t("tracker.limited");
         el.style.color = "var(--accent)";
       } else {
-        el.textContent = "· 未运行";
+        el.textContent = t("tracker.idle");
         el.style.color = "var(--muted)";
       }
     }
@@ -520,7 +801,7 @@
           const max = apps[0][1] || 1;
           appsHost.innerHTML = `
             <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-              共 <strong>${apps.length}</strong> 个 App · 前台 ${fmtDuration(totalMs)}
+              ${t("act.appsSummary", { n: apps.length, dur: fmtDuration(totalMs) })}
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;">
               ${apps.slice(0, 12).map(([name, ms]) => `
@@ -535,7 +816,7 @@
             </div>
           `;
         } else {
-          appsHost.innerHTML = `<div class="empty">暂无 App 使用记录。需在「系统设置 → 隐私与安全性 → 辅助功能」勾选运行服务器的终端。</div>`;
+          appsHost.innerHTML = `<div class="empty">${t("act.appsEmpty")}</div>`;
         }
 
         // Window titles — what was actually on screen.
@@ -543,7 +824,7 @@
         const windows = aggregate(activities.windows, w => w.title);
         if (windows.length > 0) {
           windowsHost.innerHTML = `
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">看过的窗口</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${t("act.windowsLabel")}</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
               ${windows.slice(0, 10).map(([title, ms]) => `
                 <div style="display:flex;gap:10px;font-size:12px;">
@@ -561,7 +842,7 @@
         const screenshotsHost = $("activity-screenshots");
         if (activities.screenshots && activities.screenshots.length > 0) {
           screenshotsHost.innerHTML = `
-            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">截图 (${activities.screenshots.length})</div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${t("act.screenshots", { n: activities.screenshots.length })}</div>
             <div style="display:flex;gap:8px;overflow-x:auto;">
               ${activities.screenshots.slice(-5).reverse().map(s => `
                 <div style="flex-shrink:0;width:120px;">
@@ -587,8 +868,8 @@
       try {
         const res = await api("/api/tracker/toggle", { method: "POST", body: { enabled: !trackerEnabled } });
         renderTrackerStatus(res);
-        toast(res.enabled ? "追踪已继续" : "追踪已暂停");
-      } catch (err) { toast("出错了：" + err.message); }
+        toast(res.enabled ? t("toast.trackResumed") : t("toast.trackPaused"));
+      } catch (err) { toast(t("toast.errPrefix") + err.message); }
     };
 
     // Auto-refresh activities every 30 seconds
@@ -597,7 +878,7 @@
     refresh()
       .then(refreshActivities)
       .catch((err) => {
-        $("meta").textContent = "出错了：" + err.message;
+        $("meta").textContent = t("chat.error") + err.message;
       });
   </script>
 </body>
