@@ -208,9 +208,12 @@ export async function summarize(day, slot = "adhoc") {
 const CHAT_SYSTEM = `You are Chloe's personal work-journal assistant. She asks questions about her own day and you answer ONLY from the tracked data given below: her task timers, her notes, and an auto-tracked timeline of which apps/windows she had in focus (each line stamped with the local time it ended).
 
 Guidelines:
-- Reply in the same language she asks in (usually Chinese). Keep it concise and concrete.
-- When she asks about a time window ("过去一小时" / "the past hour" / "下午" / "刚才"), use the timestamps and the current time given below to scope the answer.
-- Summarize what she actually did — group related activity, name the notable apps/windows and roughly how long — rather than dumping the raw list.
+- Reply in the same language she asks in (usually Chinese). Keep it tight.
+- When she asks about a time window ("过去一小时" / "the past hour" / "下午" / "刚才"), use the timestamps and the current time below to scope the answer.
+- ALWAYS synthesize, never transcribe. Do NOT produce a timestamped or per-window log — she can see the raw timeline elsewhere. Instead:
+  1. Open with a one-sentence headline of what the period was mostly about.
+  2. Group the activity into a few meaningful themes/categories (e.g. 编程/开发, 浏览/调研, 求职, 沟通, 写作/笔记, 杂务) with a rough time estimate for each.
+  3. Add 1–3 sentences of narrative on what she was actually working on, pulling out anything notable (a specific repo, a job application, a doc). Fold near-duplicate window titles together and ignore noise like "New Tab" or "High memory usage".
 - If the data doesn't cover what she asks, say so plainly. Never invent activity that isn't in the data.`;
 
 // A detailed, timestamped rendering for Q&A (vs. the aggregate one used for
@@ -282,8 +285,40 @@ async function callAnthropicChat({ apiKey, model, system, messages }) {
     .trim();
 }
 
-// Deterministic answer when no API key — filters activity by the time window
-// implied by the question. Good enough for "past hour / today" without an LLM.
+// Group apps into human themes so the no-key fallback reads like a summary
+// rather than a raw log.
+const CATEGORIES = [
+  { name: "编程 / 开发", test: /iterm|terminal|warp|visual studio code|vscode|xcode|cursor|sublime|\bnova\b|littlejot/i },
+  { name: "AI 助手", test: /\bclaude\b|chatgpt|copilot|perplexity/i },
+  { name: "浏览 / 调研", test: /chrome|safari|firefox|\barc\b|edge|brave/i },
+  { name: "沟通", test: /wechat|weixin|slack|\bmail\b|messages|telegram|lark|feishu|zoom|discord|outlook|teams/i },
+  { name: "笔记 / 写作", test: /obsidian|notion|\bnotes\b|\bbear\b|typora|craft|word|pages/i },
+  { name: "设计 / 媒体", test: /figma|sketch|photoshop|illustrator|photos|preview|quicktime|music|spotify/i },
+];
+
+function categoryOf(name) {
+  for (const c of CATEGORIES) if (c.test.test(name || "")) return c.name;
+  return "其他";
+}
+
+// Strip browser/app noise from window titles so highlights read cleanly.
+function cleanTitle(title, app) {
+  let s = String(title || "");
+  // Leading terminal spinner / braille / bullet glyphs (keep CJK & letters).
+  s = s.replace(/^[\s⠀-⣿*✳✦✧◌◐◑◒◓●○•·‣⁃▪▸►–—-]+/, "");
+  s = s.replace(/\s*[-–|]\s*High memory usage.*$/i, "");
+  s = s.replace(/\s*[-–]\s*\d+(\.\d+)?\s*[GM]B\s*$/i, "");
+  if (app) {
+    const esc = app.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    s = s.replace(new RegExp("\\s*[-–]\\s*" + esc + "\\s*$"), "");
+  }
+  return s.trim();
+}
+
+const TITLE_NOISE = /^(new tab|无标题|untitled|home|主页|loading|notifications?)$/i;
+
+// Deterministic answer when no API key — categorizes activity in the implied
+// time window into themes + a few cleaned highlights. Not a per-minute log.
 function fallbackAnswer(day, q) {
   const now = Date.now();
   let sinceMs = now - 60 * 60 * 1000;
@@ -305,33 +340,57 @@ function fallbackAnswer(day, q) {
 
   const acts = day.activities || {};
   const since = (arr) => (arr || []).filter((r) => new Date(r.ts).getTime() >= sinceMs);
-  const appAgg = topByDuration(since(acts.apps), (a) => a.name || a.bundleId, 8);
+  const apps = since(acts.apps);
   const wins = since(acts.windows);
   const notes = since(day.entries);
 
-  const lines = [];
-  lines.push(
-    `**${label}的活动**（未配置 ANTHROPIC_API_KEY，这是按时间筛选的记录；在 .env 填上 key 后即可用自然语言对话）：`
-  );
-  if (appAgg.length) {
-    lines.push("");
-    lines.push("用过的 App：");
-    for (const [n, ms] of appAgg) lines.push(`- ${n} — ${fmtDuration(ms)}`);
+  if (!apps.length && !wins.length && !notes.length) {
+    return `**${label}**：这段时间没有追踪到活动记录。`;
   }
-  if (wins.length) {
+
+  // Time by theme.
+  const byCat = new Map();
+  for (const a of apps) {
+    const c = categoryOf(a.name || a.bundleId);
+    byCat.set(c, (byCat.get(c) || 0) + (a.durationMs || 0));
+  }
+  const allCats = [...byCat.entries()].sort((x, y) => y[1] - x[1]);
+  const totalMs = allCats.reduce((s, [, ms]) => s + ms, 0);
+  // Hide themes that round to 0m; always keep at least the top one.
+  const bigCats = allCats.filter(([, ms]) => Math.round(ms / 60000) >= 1);
+  const cats = bigCats.length ? bigCats : allCats.slice(0, 1);
+
+  // Distinct cleaned highlights (longest-focused first).
+  const titleMs = new Map();
+  for (const w of wins) {
+    const t = cleanTitle(w.title, w.app);
+    if (!t || TITLE_NOISE.test(t)) continue;
+    titleMs.set(t, (titleMs.get(t) || 0) + (w.durationMs || 0));
+  }
+  const highlights = [...titleMs.entries()].sort((x, y) => y[1] - x[1]).slice(0, 6);
+
+  const lines = [];
+  const topCats = cats.slice(0, 2).map(([n]) => n).join("、");
+  lines.push(
+    `**${label}小结** — 主要在 ${topCats || "电脑"} 上，共约 ${fmtDuration(totalMs)}。`
+  );
+  if (cats.length) {
     lines.push("");
-    lines.push("看过的窗口：");
-    for (const w of wins.slice(-12)) lines.push(`- [${fmtTime(w.ts)}] ${w.app}: ${w.title}`);
+    lines.push("**时间分配**");
+    for (const [n, ms] of cats) lines.push(`- ${n} — ${fmtDuration(ms)}`);
+  }
+  if (highlights.length) {
+    lines.push("");
+    lines.push("**具体在做**");
+    for (const [t] of highlights) lines.push(`- ${t}`);
   }
   if (notes.length) {
     lines.push("");
-    lines.push("随手记：");
-    for (const e of notes) lines.push(`- [${fmtTime(e.ts)}] ${e.text}`);
+    lines.push("**随手记**");
+    for (const e of notes) lines.push(`- ${e.text}`);
   }
-  if (!appAgg.length && !wins.length && !notes.length) {
-    lines.push("");
-    lines.push("这段时间没有追踪到活动记录。");
-  }
+  lines.push("");
+  lines.push("_（这是无 AI key 时的本地归类汇总；在 .env 填入 ANTHROPIC_API_KEY 后，会换成 Claude 写的连贯总结。）_");
   return lines.join("\n");
 }
 
