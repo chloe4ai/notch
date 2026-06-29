@@ -38,7 +38,7 @@ export function startScheduler({ schedule = "12:00,18:00,21:00" } = {}) {
             console.log(`[scheduler] ${slot} skipped — no activity logged yet.`);
             continue;
           }
-          const { text, model } = await summarize(day, slot);
+          const { text, model } = await summarize(day, slot, process.env.SUMMARY_LANG || "zh");
           await addSummary(date, { slot, text, model });
           console.log(`[scheduler] wrote ${slot} summary for ${date}.`);
         } catch (err) {

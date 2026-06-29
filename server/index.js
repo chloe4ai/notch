@@ -118,8 +118,9 @@ app.post("/api/tasks/stop", async (_req, res) => {
 app.post("/api/summarize", async (req, res) => {
   try {
     const slot = (req.body && req.body.slot) || "adhoc";
+    const lang = (req.body && req.body.lang) || "zh";
     const day = await loadDay(todayString());
-    const { text, model } = await summarize(day, slot);
+    const { text, model } = await summarize(day, slot, lang);
     const saved = await addSummary(todayString(), { slot, text, model });
     res.json(saved);
   } catch (err) {
@@ -130,9 +131,9 @@ app.post("/api/summarize", async (req, res) => {
 // Conversational Q&A about today ("what did I do in the past hour?").
 app.post("/api/ask", async (req, res) => {
   try {
-    const { question, history } = req.body || {};
+    const { question, history, lang } = req.body || {};
     const day = await loadDay(todayString());
-    const result = await ask(day, question, history);
+    const result = await ask(day, question, history, lang || "zh");
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
