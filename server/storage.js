@@ -14,6 +14,11 @@
 // We read+write the whole file each time. At human scale (a few thousand entries
 // per day max), this is more than fast enough and trivially syncs through
 // iCloud/Dropbox without locking concerns.
+//
+// Multi-user: every function takes an optional trailing `ws` (workspace id). When
+// empty (the default — single-user local mode), files live directly under
+// DATA_DIR, exactly as before. When set (public multi-user mode), each visitor's
+// data is isolated under DATA_DIR/workspaces/<ws>/, keyed off an HttpOnly cookie.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -37,12 +42,22 @@ export function todayString(now = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-function dayPath(date) {
-  return path.join(DATA_DIR, `${date}.json`);
+// Resolve the base directory for a workspace. An empty/invalid ws falls back to
+// the root DATA_DIR (single-user mode). ws is restricted to hex so it can never
+// escape the data dir via path traversal.
+function wsDir(ws) {
+  if (ws && /^[a-f0-9]{8,64}$/.test(ws)) {
+    return path.join(DATA_DIR, "workspaces", ws);
+  }
+  return DATA_DIR;
 }
 
-async function ensureDir() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+function dayPath(date, ws) {
+  return path.join(wsDir(ws), `${date}.json`);
+}
+
+async function ensureDir(ws) {
+  await fs.mkdir(wsDir(ws), { recursive: true });
 }
 
 function emptyDay(date) {
@@ -60,10 +75,10 @@ function emptyDay(date) {
   };
 }
 
-export async function loadDay(date) {
-  await ensureDir();
+export async function loadDay(date, ws = "") {
+  await ensureDir(ws);
   try {
-    const raw = await fs.readFile(dayPath(date), "utf8");
+    const raw = await fs.readFile(dayPath(date, ws), "utf8");
     const parsed = JSON.parse(raw);
     // Migrate / fill in missing keys defensively. The activities sub-object
     // needs a *deep* merge — a shallow spread would let an old file's
@@ -78,21 +93,21 @@ export async function loadDay(date) {
   }
 }
 
-export async function saveDay(day) {
-  await ensureDir();
-  const tmp = dayPath(day.date) + ".tmp";
+export async function saveDay(day, ws = "") {
+  await ensureDir(ws);
+  const tmp = dayPath(day.date, ws) + ".tmp";
   // Atomic write: write to .tmp then rename, so an interrupted write
   // never leaves a half-written file in iCloud/Dropbox.
   await fs.writeFile(tmp, JSON.stringify(day, null, 2), "utf8");
-  await fs.rename(tmp, dayPath(day.date));
+  await fs.rename(tmp, dayPath(day.date, ws));
 }
 
 export function newId() {
   return crypto.randomBytes(8).toString("hex");
 }
 
-export async function addEntry(date, { text, tag }) {
-  const day = await loadDay(date);
+export async function addEntry(date, { text, tag }, ws = "") {
+  const day = await loadDay(date, ws);
   const entry = {
     id: newId(),
     ts: new Date().toISOString(),
@@ -101,12 +116,12 @@ export async function addEntry(date, { text, tag }) {
   };
   if (!entry.text) throw new Error("Entry text is required");
   day.entries.push(entry);
-  await saveDay(day);
+  await saveDay(day, ws);
   return entry;
 }
 
-export async function startTask(date, name) {
-  const day = await loadDay(date);
+export async function startTask(date, name, ws = "") {
+  const day = await loadDay(date, ws);
   // Auto-stop any currently-open task before starting a new one.
   const open = day.tasks.find((t) => t.endTs == null);
   const now = new Date().toISOString();
@@ -122,22 +137,22 @@ export async function startTask(date, name) {
     durationMs: null,
   };
   day.tasks.push(task);
-  await saveDay(day);
+  await saveDay(day, ws);
   return { task, autoClosed: open || null };
 }
 
-export async function stopCurrentTask(date) {
-  const day = await loadDay(date);
+export async function stopCurrentTask(date, ws = "") {
+  const day = await loadDay(date, ws);
   const open = day.tasks.find((t) => t.endTs == null);
   if (!open) return null;
   open.endTs = new Date().toISOString();
   open.durationMs = new Date(open.endTs) - new Date(open.startTs);
-  await saveDay(day);
+  await saveDay(day, ws);
   return open;
 }
 
-export async function addSummary(date, { slot, text, model }) {
-  const day = await loadDay(date);
+export async function addSummary(date, { slot, text, model }, ws = "") {
+  const day = await loadDay(date, ws);
   const summary = {
     id: newId(),
     ts: new Date().toISOString(),
@@ -146,13 +161,13 @@ export async function addSummary(date, { slot, text, model }) {
     model: model || null,
   };
   day.summaries.push(summary);
-  await saveDay(day);
+  await saveDay(day, ws);
   return summary;
 }
 
 // --- Activity tracking ---
-export async function addAppActivity(date, { bundleId, name, durationMs }) {
-  const day = await loadDay(date);
+export async function addAppActivity(date, { bundleId, name, durationMs }, ws = "") {
+  const day = await loadDay(date, ws);
   const activity = {
     id: newId(),
     ts: new Date().toISOString(),
@@ -161,12 +176,12 @@ export async function addAppActivity(date, { bundleId, name, durationMs }) {
     durationMs,
   };
   day.activities.apps.push(activity);
-  await saveDay(day);
+  await saveDay(day, ws);
   return activity;
 }
 
-export async function addWindowActivity(date, { app, bundleId, title, durationMs }) {
-  const day = await loadDay(date);
+export async function addWindowActivity(date, { app, bundleId, title, durationMs }, ws = "") {
+  const day = await loadDay(date, ws);
   const activity = {
     id: newId(),
     ts: new Date().toISOString(),
@@ -176,12 +191,12 @@ export async function addWindowActivity(date, { app, bundleId, title, durationMs
     durationMs,
   };
   day.activities.windows.push(activity);
-  await saveDay(day);
+  await saveDay(day, ws);
   return activity;
 }
 
-export async function addKeylogActivity(date, { app, keys, count }) {
-  const day = await loadDay(date);
+export async function addKeylogActivity(date, { app, keys, count }, ws = "") {
+  const day = await loadDay(date, ws);
   const activity = {
     id: newId(),
     ts: new Date().toISOString(),
@@ -190,31 +205,31 @@ export async function addKeylogActivity(date, { app, keys, count }) {
     count,
   };
   day.activities.keylogs.push(activity);
-  await saveDay(day);
+  await saveDay(day, ws);
   return activity;
 }
 
-export async function addScreenshotActivity(date, { filename }) {
-  const day = await loadDay(date);
+export async function addScreenshotActivity(date, { filename }, ws = "") {
+  const day = await loadDay(date, ws);
   const activity = {
     id: newId(),
     ts: new Date().toISOString(),
     filename,
   };
   day.activities.screenshots.push(activity);
-  await saveDay(day);
+  await saveDay(day, ws);
   return activity;
 }
 
-export async function saveScreenshotFile(date, filename, buffer) {
-  const screenshotsDir = path.join(DATA_DIR, "screenshots", date);
+export async function saveScreenshotFile(date, filename, buffer, ws = "") {
+  const screenshotsDir = path.join(wsDir(ws), "screenshots", date);
   await fs.mkdir(screenshotsDir, { recursive: true });
   const filepath = path.join(screenshotsDir, filename);
   await fs.writeFile(filepath, buffer);
   return filepath;
 }
 
-export async function loadActivities(date) {
-  const day = await loadDay(date);
+export async function loadActivities(date, ws = "") {
+  const day = await loadDay(date, ws);
   return day.activities;
 }

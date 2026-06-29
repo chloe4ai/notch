@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>日迹</title>
+  <title>Notch · traces of a day</title>
   <style>
     :root {
       --bg: #faf8f5;
@@ -149,7 +149,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1><span data-i18n="brand">日迹</span> <span data-i18n="tagline" style="font-size:13px;color:var(--muted);font-weight:normal;letter-spacing:0;">· 一天的痕迹</span></h1>
+      <h1><span data-i18n="brand">Notch</span> <span data-i18n="tagline" style="font-size:13px;color:var(--muted);font-weight:normal;letter-spacing:0;">· traces of a day</span></h1>
       <div class="head-right">
         <select id="lang-select" aria-label="Language">
           <option value="zh">中文</option>
@@ -161,55 +161,55 @@
     </header>
 
     <div class="card">
-      <h2 data-i18n="card.now">正在做的事</h2>
+      <h2 data-i18n="card.now">Now</h2>
       <div id="running-host"></div>
       <div class="row">
-        <input type="text" id="task-name" data-i18n-ph="now.placeholder" placeholder='例如：改简历 - Stripe PM' autocomplete="off"/>
-        <button class="primary" id="task-start" data-i18n="now.start">开始</button>
+        <input type="text" id="task-name" data-i18n-ph="now.placeholder" placeholder='e.g. Resume edit - Stripe PM' autocomplete="off"/>
+        <button class="primary" id="task-start" data-i18n="now.start">Start</button>
       </div>
-      <div class="hint" data-i18n="now.hint">开始新任务时，上一个任务会自动停下来。</div>
+      <div class="hint" data-i18n="now.hint">Starting a new task automatically stops the previous one.</div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="card.note">随手记一笔</h2>
-      <textarea id="entry" data-i18n-ph="note.placeholder" placeholder="脑子里冒出来什么都行。⌘+Enter 保存。可以用 Typeless 听写。"></textarea>
+      <h2 data-i18n="card.note">Quick note</h2>
+      <textarea id="entry" data-i18n-ph="note.placeholder" placeholder="Whatever's on your mind. ⌘+Enter to save. Dictation (Typeless) works too."></textarea>
       <div class="row" style="margin-top: 10px;">
-        <button class="primary" id="entry-save" data-i18n="note.save">保存</button>
-        <button class="ghost" id="summarize" data-i18n="note.summarizeNow">现在总结</button>
+        <button class="primary" id="entry-save" data-i18n="note.save">Save</button>
+        <button class="ghost" id="summarize" data-i18n="note.summarizeNow">Summarize now</button>
         <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
       </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="card.ask">问问今天</h2>
+      <h2 data-i18n="card.ask">Ask today</h2>
       <div class="chat-log" id="chat-log"></div>
       <div class="row" style="margin-top: 10px;">
-        <input type="text" id="chat-input" data-i18n-ph="ask.placeholder" placeholder="例如：我过去一小时做了什么？" autocomplete="off"/>
-        <button class="primary" id="chat-send" data-i18n="ask.send">发送</button>
+        <input type="text" id="chat-input" data-i18n-ph="ask.placeholder" placeholder="e.g. What did I do in the past hour?" autocomplete="off"/>
+        <button class="primary" id="chat-send" data-i18n="ask.send">Send</button>
       </div>
       <div class="chips">
-        <button class="ghost chip" data-chip="pastHour" data-q="我过去一小时做了什么？">过去一小时</button>
-        <button class="ghost chip" data-chip="today" data-q="帮我总结一下今天到现在做了什么">总结今天</button>
-        <button class="ghost chip" data-chip="timeWhere" data-q="我今天的时间主要花在哪些事情上？">时间花哪了</button>
+        <button class="ghost chip" data-chip="pastHour" data-q="What did I do in the past hour?">Past hour</button>
+        <button class="ghost chip" data-chip="today" data-q="Summarize what I've done today so far">Recap today</button>
+        <button class="ghost chip" data-chip="timeWhere" data-q="What did I mostly spend my time on today?">Where time went</button>
       </div>
     </div>
 
     <div class="card">
-      <h2 data-i18n="card.today">今天</h2>
+      <h2 data-i18n="card.today">Today</h2>
       <div class="totals" id="totals"></div>
       <ul class="timeline" id="timeline"></ul>
     </div>
 
     <div class="card">
-      <h2 data-i18n="card.summaries">小结</h2>
+      <h2 data-i18n="card.summaries">Summaries</h2>
       <div id="summaries"></div>
     </div>
 
     <div class="card">
       <h2 style="display:flex;align-items:center;gap:8px;">
-        <span data-i18n="card.activity">活动日志</span>
+        <span data-i18n="card.activity">Activity log</span>
         <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
-        <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">暂停追踪</button>
+        <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">Pause tracking</button>
       </h2>
       <div id="activity-apps"></div>
       <div id="activity-windows" style="margin-top:12px;"></div>
@@ -439,12 +439,14 @@
     };
 
     const LANG_KEY = "notch.lang";
+    // English is the default for first-time visitors (recruiters etc.); a saved
+    // choice always wins and persists, so switching to 中文 / 日本語 sticks.
     let LANG = (() => {
       try {
         const saved = localStorage.getItem(LANG_KEY);
         if (saved && I18N[saved]) return saved;
       } catch (_) {}
-      return "zh";
+      return "en";
     })();
 
     function t(key, params) {
