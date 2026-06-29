@@ -104,6 +104,53 @@ The Tauri app in `src-tauri/` opens Notch in a native window. Its **old built-in
 
 ---
 
+## Deploy to the web (multi-user) · 部署到网上（多用户）
+
+Notch ships in two modes. Locally it's the single-user app above. Set
+`MULTIUSER=on` and it becomes a public web app where **every visitor gets their
+own private, cookie-scoped workspace** — no login, no shared data. The default
+UI language is **English** (recruiters and first-time visitors land on English;
+the switcher still offers 中文 / 日本語 and the choice persists per browser).
+
+In multi-user mode the macOS activity tracker and the scheduled summaries are
+turned **off automatically** (both only make sense for one local user), and the
+AI endpoints are **rate-limited per visitor** so a shared Anthropic key can't be
+abused (`AI_PER_HOUR` / `AI_PER_MIN`).
+
+多用户模式下，每位访客都有自己独立的、由 Cookie 区分的工作区（无需登录、数据互不可见）。
+默认界面语言为英文，仍可切换到中文 / 日语并记住选择。macOS 活动追踪与定时总结会自动关闭，
+AI 接口按访客限流以保护共享的 API key。
+
+### One-click via Render Blueprint · 用 Render 一键部署
+
+The repo includes [`render.yaml`](./render.yaml).
+
+1. Push this repo to GitHub (already done if you're reading this on GitHub).
+2. On [Render](https://render.com): **New + → Blueprint**, pick this repo. Render
+   reads `render.yaml` and provisions the web service in multi-user mode.
+3. When prompted, set **`ANTHROPIC_API_KEY`** to your key (it's declared
+   `sync: false`, so it lives only in Render, never in the repo). To run without
+   AI, leave it blank — summaries/Q&A fall back to a deterministic digest.
+4. Deploy. Your public URL is `https://<service-name>.onrender.com`.
+
+> Render's free tier has **no persistent disk**, so a visitor's data lives for
+> their session and resets when the service restarts/redeploys — ideal for a
+> demo. For durable storage, upgrade the instance and add a disk mounted at the
+> path you point `DATA_DIR` to.
+
+### Any other Node host · 其它 Node 平台
+
+Notch is a plain Node/Express server — it runs anywhere that runs Node 18+.
+Just set the environment and start it:
+
+```bash
+MULTIUSER=on TRACKING=off ANTHROPIC_API_KEY=sk-ant-... npm start
+```
+
+The host provides `PORT`; everything else has sane defaults.
+
+---
+
 ## API · API 端点
 
 | Endpoint | Method | Description | 说明 |

@@ -1,0 +1,34 @@
+# Render Blueprint — one-click public deploy of Notch in multi-user mode.
+# https://render.com/docs/blueprint-spec
+#
+# Pushing this file to your repo lets Render set the whole service up from the
+# dashboard: New + → Blueprint → pick this repo. The only thing you set by hand
+# is your Anthropic API key (envVar with sync:false, so it never lives in git).
+services:
+  - type: web
+    name: notch
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/today
+    autoDeploy: true
+    envVars:
+      # Public mode: every visitor gets an isolated, cookie-scoped workspace.
+      - key: MULTIUSER
+        value: "on"
+      # The activity tracker is macOS-only; off on a Linux host.
+      - key: TRACKING
+        value: "off"
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      # Set this in the Render dashboard — sync:false keeps it out of the repo.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # Per-visitor AI call caps that protect the shared key (tune as needed).
+      - key: AI_PER_HOUR
+        value: "40"
+      - key: AI_PER_MIN
+        value: "8"
+      - key: NODE_VERSION
+        value: "20"
