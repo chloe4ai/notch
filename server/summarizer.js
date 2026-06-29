@@ -533,3 +533,176 @@ export async function ask(day, question, history = [], lang = "zh") {
     return { text: `(AI call failed: ${err.message})\n\n` + fallbackAnswer(day, q, L), model: null };
   }
 }
+
+// --- Weekly review ---------------------------------------------------------
+
+function dayTrackedMs(day) {
+  return ((day.activities || {}).apps || []).reduce((s, a) => s + (a.durationMs || 0), 0);
+}
+
+export function renderWeekForModel(days, weekStart) {
+  const lines = [];
+  lines.push(`# Week of ${weekStart} (Monday→Sunday)`);
+  for (const day of days) {
+    const acts = day.activities || {};
+    const tracked = dayTrackedMs(day);
+    const has = day.tasks.length || day.entries.length || tracked || (day.plan && day.plan.trim());
+    lines.push("");
+    lines.push(`## ${day.date}`);
+    if (!has) {
+      lines.push("(no activity)");
+      continue;
+    }
+    if (day.plan && day.plan.trim()) lines.push(`Plan: ${day.plan.trim()}`);
+    if (day.tasks.length) {
+      lines.push("Tasks:");
+      for (const t of day.tasks) {
+        const dur = t.durationMs ? ` (${fmtDuration(t.durationMs)})` : "";
+        lines.push(`- ${t.name}${dur}`);
+      }
+    }
+    if (day.entries.length) {
+      lines.push("Notes:");
+      for (const e of day.entries) lines.push(`- ${e.text}`);
+    }
+    const topApps = topByDuration(acts.apps, (a) => a.name || a.bundleId, 5);
+    if (topApps.length)
+      lines.push(
+        `Tracked ${fmtDuration(tracked)} — ` +
+          topApps.map(([n, ms]) => `${n} ${fmtDuration(ms)}`).join(", ")
+      );
+    const topWins = topByDuration(acts.windows, (w) => cleanTitle(w.title, w.app), 4).filter(
+      ([t]) => t && !TITLE_NOISE.test(t)
+    );
+    if (topWins.length) lines.push("Notable: " + topWins.map(([t]) => t).join(" · "));
+  }
+  return lines.join("\n");
+}
+
+const WEEK_PROMPT = `You are Chloe's personal work journaler writing her WEEKLY review. Below is each day of the week: her plans, task timers, notes, and an auto-tracked record of which apps/windows she had in focus.
+
+Write the weekly review in markdown, in her voice (direct, lower-case-y, slightly clipped, no corporate filler), using this structure:
+
+# Weekly review — week of {{WEEK_START}}
+
+**Headline:** one sentence on what the week was really about.
+
+**Where time went:** a tight list of the main themes she spent time on (group across days — coding, job search, research, writing, etc.), with rough time. Combine, don't transcribe per-day.
+
+**Threads & progress:** 2–5 bullets on the threads that ran through the week and what actually moved. Pull decisions, blockers, recurring topics. Quote her own notes when it sharpens the point.
+
+**Plan vs. reality:** if she set daily/weekly plans, briefly note what got done vs. what slipped. If no plans were set, say so in one line.
+
+**Next week:** 1–3 forward bullets — open loops to close, things she signaled she'd continue.
+
+Rules:
+- Write the ENTIRE review — including every section label — in {{LANG_NAME}}. Translate the structure naturally; keep the markdown.
+- Be faithful, never invent. Synthesize across the whole week — do NOT output a per-day log. If the week is sparse, say so plainly.
+
+Here is the week's data:
+
+{{WEEK}}`;
+
+// Localized copy for the deterministic (no-API-key) weekly roll-up.
+const FB_WEEK = {
+  zh: {
+    headline: (ws, dur) => `**本周小结（${ws} 起）** — 共追踪 ${dur}。`,
+    breakdown: "**时间分配**",
+    daily: "**每日概览**",
+    notes: "**本周随手记**",
+    mainApp: (app) => `主要 ${app}`,
+    noteCount: (n) => `${n} 条随手记`,
+    hasPlan: "有计划",
+    noRec: "无记录",
+    sep: "，",
+    noKey: "_（无 AI key 的本地汇总；在 .env 填入 ANTHROPIC_API_KEY 后，会换成 Claude 写的周回顾。）_",
+  },
+  en: {
+    headline: (ws, dur) => `**Week of ${ws}** — ${dur} tracked.`,
+    breakdown: "**Time breakdown**",
+    daily: "**Day by day**",
+    notes: "**Notes this week**",
+    mainApp: (app) => `mostly ${app}`,
+    noteCount: (n) => `${n} note${n > 1 ? "s" : ""}`,
+    hasPlan: "has a plan",
+    noRec: "no activity",
+    sep: ", ",
+    noKey: "_(Local roll-up — no AI key. Add ANTHROPIC_API_KEY to .env for a Claude-written weekly review.)_",
+  },
+  ja: {
+    headline: (ws, dur) => `**${ws} の週まとめ** — 合計 ${dur} 記録。`,
+    breakdown: "**時間の配分**",
+    daily: "**日ごと**",
+    notes: "**今週のメモ**",
+    mainApp: (app) => `主に ${app}`,
+    noteCount: (n) => `メモ ${n} 件`,
+    hasPlan: "計画あり",
+    noRec: "記録なし",
+    sep: "、",
+    noKey: "_（AI key 未設定時のローカル集計です。.env に ANTHROPIC_API_KEY を入れると Claude による週次レビューに変わります。）_",
+  },
+};
+
+function fallbackWeek(days, weekStart, lang) {
+  const L = normLang(lang);
+  const c = FB_WEEK[L];
+  const byCat = new Map();
+  let totalMs = 0;
+  const allNotes = [];
+  for (const day of days) {
+    for (const a of (day.activities || {}).apps || []) {
+      const cat = categoryOf(a.name || a.bundleId, L);
+      byCat.set(cat, (byCat.get(cat) || 0) + (a.durationMs || 0));
+      totalMs += a.durationMs || 0;
+    }
+    for (const e of day.entries) allNotes.push(e.text);
+  }
+  const cats = [...byCat.entries()]
+    .filter(([, ms]) => Math.round(ms / 60000) >= 1)
+    .sort((x, y) => y[1] - x[1]);
+
+  const lines = [];
+  lines.push(c.headline(weekStart, fmtDuration(totalMs)));
+  if (cats.length) {
+    lines.push("");
+    lines.push(c.breakdown);
+    for (const [n, ms] of cats) lines.push(`- ${n} — ${fmtDuration(ms)}`);
+  }
+  lines.push("");
+  lines.push(c.daily);
+  for (const day of days) {
+    const tracked = dayTrackedMs(day);
+    const top = topByDuration((day.activities || {}).apps, (a) => a.name || a.bundleId, 1)[0];
+    const bits = [];
+    if (tracked) bits.push(fmtDuration(tracked) + (top ? ` · ${c.mainApp(top[0])}` : ""));
+    if (day.entries.length) bits.push(c.noteCount(day.entries.length));
+    if (day.plan && day.plan.trim()) bits.push(c.hasPlan);
+    lines.push(`- ${day.date}: ${bits.length ? bits.join(c.sep) : c.noRec}`);
+  }
+  if (allNotes.length) {
+    lines.push("");
+    lines.push(c.notes);
+    for (const n of allNotes.slice(0, 15)) lines.push(`- ${n}`);
+  }
+  lines.push("");
+  lines.push(c.noKey);
+  return lines.join("\n");
+}
+
+export async function summarizeWeek(days, weekStart, lang = "zh") {
+  const L = normLang(lang);
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+  if (!apiKey) return { text: fallbackWeek(days, weekStart, L), model: null };
+
+  const prompt = WEEK_PROMPT.replaceAll("{{WEEK_START}}", weekStart)
+    .replaceAll("{{LANG_NAME}}", LANG_NAMES[L])
+    .replace("{{WEEK}}", renderWeekForModel(days, weekStart));
+  try {
+    const text = await callAnthropic({ apiKey, model, prompt });
+    return { text, model };
+  } catch (err) {
+    console.error("[summarizeWeek] LLM call failed:", err.message);
+    return { text: fallbackWeek(days, weekStart, L), model: null };
+  }
+}

@@ -144,6 +144,27 @@
       pointer-events: none;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .tab {
+      appearance: none; border: none; background: none; cursor: pointer;
+      font: inherit; font-size: 15px; color: var(--muted);
+      padding: 9px 16px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-section { animation: fade 0.2s; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .plan textarea { min-height: 110px; }
+    .markdown { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; font-size: 14px; }
+    .markdown strong { color: var(--ink); }
+    .summary .markdown { margin: 0; }
+    .weekgrid { display: flex; gap: 6px; flex-wrap: wrap; }
+    .weekgrid .daycell {
+      flex: 1; min-width: 92px; background: #faf8f4; border: 1px solid var(--line);
+      border-radius: 8px; padding: 8px 10px; font-size: 12px;
+    }
+    .weekgrid .daycell .d { color: var(--muted); margin-bottom: 4px; }
+    .weekgrid .daycell.today { border-color: var(--accent); background: var(--accent-soft); }
   </style>
 </head>
 <body>
@@ -160,61 +181,113 @@
       </div>
     </header>
 
-    <div class="card">
-      <h2 data-i18n="card.now">Now</h2>
-      <div id="running-host"></div>
-      <div class="row">
-        <input type="text" id="task-name" data-i18n-ph="now.placeholder" placeholder='e.g. Resume edit - Stripe PM' autocomplete="off"/>
-        <button class="primary" id="task-start" data-i18n="now.start">Start</button>
+    <nav class="tabs">
+      <button class="tab active" data-tab="today" data-i18n="tab.today">Today</button>
+      <button class="tab" data-tab="week" data-i18n="tab.week">Weekly</button>
+      <button class="tab" data-tab="assistant" data-i18n="tab.assistant">Assistant</button>
+    </nav>
+
+    <!-- ===================== Today ===================== -->
+    <section class="tab-section" id="tab-today">
+      <div class="card">
+        <h2 data-i18n="card.now">Now</h2>
+        <div id="running-host"></div>
+        <div class="row">
+          <input type="text" id="task-name" data-i18n-ph="now.placeholder" placeholder='e.g. Resume edit - Stripe PM' autocomplete="off"/>
+          <button class="primary" id="task-start" data-i18n="now.start">Start</button>
+        </div>
+        <div class="hint" data-i18n="now.hint">Starting a new task automatically stops the previous one.</div>
       </div>
-      <div class="hint" data-i18n="now.hint">Starting a new task automatically stops the previous one.</div>
-    </div>
 
-    <div class="card">
-      <h2 data-i18n="card.note">Quick note</h2>
-      <textarea id="entry" data-i18n-ph="note.placeholder" placeholder="Whatever's on your mind. ⌘+Enter to save. Dictation (Typeless) works too."></textarea>
-      <div class="row" style="margin-top: 10px;">
-        <button class="primary" id="entry-save" data-i18n="note.save">Save</button>
-        <button class="ghost" id="summarize" data-i18n="note.summarizeNow">Summarize now</button>
-        <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+      <div class="card plan">
+        <h2 data-i18n="card.dayPlan">Plan ahead</h2>
+        <textarea id="day-plan" data-i18n-ph="plan.dayPlaceholder" placeholder="A few things to push today / priorities / intentions…"></textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="primary" id="day-plan-save" data-i18n="plan.save">Save plan</button>
+          <button class="ghost" id="day-plan-draft" data-i18n="plan.draft">Draft with Xiao En</button>
+          <span class="hint" id="day-plan-hint" style="margin-left: auto;"></span>
+        </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2 data-i18n="card.ask">Ask today</h2>
-      <div class="chat-log" id="chat-log"></div>
-      <div class="row" style="margin-top: 10px;">
-        <input type="text" id="chat-input" data-i18n-ph="ask.placeholder" placeholder="e.g. What did I do in the past hour?" autocomplete="off"/>
-        <button class="primary" id="chat-send" data-i18n="ask.send">Send</button>
+      <div class="card">
+        <h2 data-i18n="card.note">Quick note</h2>
+        <textarea id="entry" data-i18n-ph="note.placeholder" placeholder="Whatever's on your mind. ⌘+Enter to save. Dictation (Typeless) works too."></textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="primary" id="entry-save" data-i18n="note.save">Save</button>
+          <span class="hint" id="entry-hint" style="margin-left: auto;"></span>
+        </div>
       </div>
-      <div class="chips">
-        <button class="ghost chip" data-chip="pastHour" data-q="What did I do in the past hour?">Past hour</button>
-        <button class="ghost chip" data-chip="today" data-q="Summarize what I've done today so far">Recap today</button>
-        <button class="ghost chip" data-chip="timeWhere" data-q="What did I mostly spend my time on today?">Where time went</button>
+
+      <div class="card">
+        <h2 data-i18n="card.today">Today</h2>
+        <div class="totals" id="totals"></div>
+        <ul class="timeline" id="timeline"></ul>
       </div>
-    </div>
 
-    <div class="card">
-      <h2 data-i18n="card.today">Today</h2>
-      <div class="totals" id="totals"></div>
-      <ul class="timeline" id="timeline"></ul>
-    </div>
+      <div class="card">
+        <h2 style="display:flex;align-items:center;gap:8px;">
+          <span data-i18n="card.dayRecap">Recap</span>
+          <button class="ghost" id="summarize" data-i18n="note.summarizeNow" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">Summarize now</button>
+        </h2>
+        <div id="summaries"></div>
+      </div>
 
-    <div class="card">
-      <h2 data-i18n="card.summaries">Summaries</h2>
-      <div id="summaries"></div>
-    </div>
+      <div class="card">
+        <h2 style="display:flex;align-items:center;gap:8px;">
+          <span data-i18n="card.activity">Activity log</span>
+          <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
+          <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">Pause tracking</button>
+        </h2>
+        <div id="activity-apps"></div>
+        <div id="activity-windows" style="margin-top:12px;"></div>
+        <div id="activity-screenshots" style="margin-top:12px;"></div>
+      </div>
+    </section>
 
-    <div class="card">
-      <h2 style="display:flex;align-items:center;gap:8px;">
-        <span data-i18n="card.activity">Activity log</span>
-        <span id="tracker-status" style="font-size:11px;font-weight:normal;text-transform:none;letter-spacing:0;color:var(--muted);"></span>
-        <button id="tracker-toggle" class="ghost" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">Pause tracking</button>
-      </h2>
-      <div id="activity-apps"></div>
-      <div id="activity-windows" style="margin-top:12px;"></div>
-      <div id="activity-screenshots" style="margin-top:12px;"></div>
-    </div>
+    <!-- ===================== Weekly ===================== -->
+    <section class="tab-section" id="tab-week" hidden>
+      <div class="card plan">
+        <h2 id="week-plan-title" data-i18n="card.weekPlan">Plan ahead</h2>
+        <textarea id="week-plan" data-i18n-ph="plan.weekPlaceholder" placeholder="Goals for the week / a few big things…"></textarea>
+        <div class="row" style="margin-top: 10px;">
+          <button class="primary" id="week-plan-save" data-i18n="plan.save">Save plan</button>
+          <button class="ghost" id="week-plan-draft" data-i18n="plan.draft">Draft with Xiao En</button>
+          <span class="hint" id="week-plan-hint" style="margin-left: auto;"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="display:flex;align-items:center;gap:8px;">
+          <span data-i18n="card.weekRecap">Weekly recap</span>
+          <button class="ghost" id="week-summarize" data-i18n="week.generate" style="margin-left:auto;font-size:12px;padding:4px 10px;text-transform:none;letter-spacing:0;">Generate weekly recap</button>
+        </h2>
+        <div id="week-summaries"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="card.weekOverview">This week</h2>
+        <div class="totals" id="week-totals"></div>
+        <div id="week-grid" class="weekgrid" style="margin-top: 12px;"></div>
+        <div id="week-apps" style="margin-top: 14px;"></div>
+      </div>
+    </section>
+
+    <!-- ===================== Assistant (Xiao En) ===================== -->
+    <section class="tab-section" id="tab-assistant" hidden>
+      <div class="card">
+        <h2 data-i18n="card.assistant">Xiao En</h2>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="row" style="margin-top: 10px;">
+          <input type="text" id="chat-input" data-i18n-ph="ask.placeholder" placeholder="e.g. What did I do in the past hour?" autocomplete="off"/>
+          <button class="primary" id="chat-send" data-i18n="ask.send">Send</button>
+        </div>
+        <div class="chips">
+          <button class="ghost chip" data-chip="pastHour" data-q="What did I do in the past hour?">Past hour</button>
+          <button class="ghost chip" data-chip="today" data-q="Summarize what I've done today so far">Recap today</button>
+          <button class="ghost chip" data-chip="timeWhere" data-q="What did I mostly spend my time on today?">Where time went</button>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -295,6 +368,32 @@
         "toast.trackPaused": "追踪已暂停",
         "toast.failedPrefix": "失败：",
         "toast.errPrefix": "出错了：",
+        "tab.today": "今日",
+        "tab.week": "本周",
+        "tab.assistant": "小恩助手",
+        "card.dayPlan": "今日计划",
+        "card.weekPlan": "本周计划",
+        "card.dayRecap": "今日回顾",
+        "card.weekRecap": "本周回顾",
+        "card.weekOverview": "本周概览",
+        "card.assistant": "小恩助手",
+        "plan.dayPlaceholder": "今天想推进的几件事 / 优先级 / 意图…",
+        "plan.weekPlaceholder": "这周的目标 / 想完成的几件大事…",
+        "plan.save": "保存计划",
+        "plan.draft": "让小恩起草",
+        "plan.drafting": "小恩起草中…",
+        "plan.drafted": "已起草，改完记得保存",
+        "plan.dayDraftQ": "根据我今天已有的记录和活动，帮我起草今天接下来的计划。列 3–5 个具体、可执行的要点，用「- 」开头，只返回要点本身，不要解释。",
+        "plan.weekDraftQ": "根据我最近的工作和活动，帮我起草这一周的计划。列 3–6 个目标/要点，用「- 」开头，只返回要点本身，不要解释。",
+        "week.generate": "生成周回顾",
+        "week.recapEmpty": "还没有本周回顾。点「生成周回顾」让小恩汇总这一周。",
+        "week.tracked": "追踪 <strong>{dur}</strong>",
+        "week.appsLabel": "本周 App 时长",
+        "week.notesShort": "{n} 记",
+        "week.hasPlan": "有计划",
+        "toast.planSaved": "今日计划已保存",
+        "toast.weekPlanSaved": "本周计划已保存",
+        "toast.weekSummaryDone": "周回顾已生成",
       },
       en: {
         "title": "Notch · traces of a day",
@@ -365,6 +464,32 @@
         "toast.trackPaused": "Tracking paused",
         "toast.failedPrefix": "Failed: ",
         "toast.errPrefix": "Error: ",
+        "tab.today": "Today",
+        "tab.week": "Weekly",
+        "tab.assistant": "Assistant",
+        "card.dayPlan": "Plan ahead",
+        "card.weekPlan": "Plan ahead",
+        "card.dayRecap": "Recap",
+        "card.weekRecap": "Weekly recap",
+        "card.weekOverview": "This week",
+        "card.assistant": "Xiao En",
+        "plan.dayPlaceholder": "A few things to push today / priorities / intentions…",
+        "plan.weekPlaceholder": "Goals for the week / a few big things…",
+        "plan.save": "Save plan",
+        "plan.draft": "Draft with Xiao En",
+        "plan.drafting": "Xiao En is drafting…",
+        "plan.drafted": "Drafted — edit and save",
+        "plan.dayDraftQ": "Based on my notes and activity so far today, draft a plan for the rest of my day. List 3–5 concrete, actionable bullets starting with \"- \". Return only the bullets, no explanation.",
+        "plan.weekDraftQ": "Based on my recent work and activity, draft a plan for this week. List 3–6 goals/bullets starting with \"- \". Return only the bullets, no explanation.",
+        "week.generate": "Generate weekly recap",
+        "week.recapEmpty": "No weekly recap yet. Hit “Generate weekly recap” to have Xiao En sum up the week.",
+        "week.tracked": "<strong>{dur}</strong> tracked",
+        "week.appsLabel": "App time this week",
+        "week.notesShort": "{n} notes",
+        "week.hasPlan": "has a plan",
+        "toast.planSaved": "Plan saved",
+        "toast.weekPlanSaved": "Weekly plan saved",
+        "toast.weekSummaryDone": "Weekly recap ready",
       },
       ja: {
         "title": "日迹",
@@ -435,6 +560,32 @@
         "toast.trackPaused": "追跡を一時停止しました",
         "toast.failedPrefix": "失敗：",
         "toast.errPrefix": "エラー：",
+        "tab.today": "今日",
+        "tab.week": "今週",
+        "tab.assistant": "小恩",
+        "card.dayPlan": "今日の計画",
+        "card.weekPlan": "今週の計画",
+        "card.dayRecap": "今日のふりかえり",
+        "card.weekRecap": "今週のふりかえり",
+        "card.weekOverview": "今週の概要",
+        "card.assistant": "小恩アシスタント",
+        "plan.dayPlaceholder": "今日進めたいこと / 優先順位 / 意図…",
+        "plan.weekPlaceholder": "今週の目標 / やり遂げたいこと…",
+        "plan.save": "計画を保存",
+        "plan.draft": "小恩に下書き",
+        "plan.drafting": "小恩が下書き中…",
+        "plan.drafted": "下書きしました。編集して保存を",
+        "plan.dayDraftQ": "今日のこれまでの記録と活動をもとに、今日これからの計画を下書きして。具体的で実行可能な項目を3〜5個、「- 」で始めて、項目だけ返して、説明は不要。",
+        "plan.weekDraftQ": "最近の作業と活動をもとに、今週の計画を下書きして。目標/項目を3〜6個、「- 」で始めて、項目だけ返して、説明は不要。",
+        "week.generate": "週次レビューを生成",
+        "week.recapEmpty": "今週のふりかえりはまだありません。「週次レビューを生成」で小恩に今週をまとめてもらいましょう。",
+        "week.tracked": "記録 <strong>{dur}</strong>",
+        "week.appsLabel": "今週の App 利用時間",
+        "week.notesShort": "メモ {n}",
+        "week.hasPlan": "計画あり",
+        "toast.planSaved": "今日の計画を保存しました",
+        "toast.weekPlanSaved": "今週の計画を保存しました",
+        "toast.weekSummaryDone": "週次レビューを生成しました",
       },
     };
 
@@ -489,6 +640,7 @@
         render();
         refreshActivities();
       }
+      if (typeof weekState !== "undefined" && weekState) renderWeek();
     }
 
     function fmtTime(iso) {
@@ -603,10 +755,13 @@
           <div class="summary">
             <h3>${escapeHTML(slotLabel(s.slot))}</h3>
             <div class="when">${fmtTime(s.ts)} · ${escapeHTML(s.model || t("summaries.noModel"))}</div>
-            <pre>${escapeHTML(s.text)}</pre>
+            <div class="markdown">${mdLite(s.text)}</div>
           </div>
         `).join("");
       }
+
+      // Plan textarea (don't clobber while the user is typing)
+      if (document.activeElement !== $("day-plan")) $("day-plan").value = state.plan || "";
     }
 
     function escapeHTML(s) {
@@ -728,6 +883,97 @@
     // Language switcher.
     $("lang-select").value = LANG;
     $("lang-select").onchange = (e) => setLang(e.target.value);
+
+    // --- Tabs ---
+    const sections = { today: $("tab-today"), week: $("tab-week"), assistant: $("tab-assistant") };
+    function switchTab(name) {
+      document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+      Object.entries(sections).forEach(([k, el]) => { el.hidden = k !== name; });
+      if (name === "week") refreshWeek();
+    }
+    document.querySelectorAll(".tab").forEach((b) => { b.onclick = () => switchTab(b.dataset.tab); });
+
+    // Fill a plan textarea with an AI draft (reuses the assistant ask endpoint).
+    async function draftPlan(textareaId, hintId, questionKey) {
+      const hint = $(hintId);
+      hint.textContent = t("plan.drafting");
+      try {
+        const res = await api("/api/ask", { method: "POST", body: { question: t(questionKey), lang: LANG } });
+        $(textareaId).value = res.text;
+        hint.textContent = t("plan.drafted");
+      } catch (err) { hint.textContent = t("chat.error") + err.message; }
+    }
+
+    // --- Daily plan (plan ahead) ---
+    $("day-plan-save").onclick = async () => {
+      try {
+        await api("/api/day/plan", { method: "POST", body: { text: $("day-plan").value } });
+        toast(t("toast.planSaved"));
+      } catch (err) { toast(t("toast.errPrefix") + err.message); }
+    };
+    $("day-plan-draft").onclick = () => draftPlan("day-plan", "day-plan-hint", "plan.dayDraftQ");
+
+    // --- Weekly ---
+    let weekState = null;
+    function weekdayLabel(dateStr) {
+      try { return new Date(dateStr + "T00:00:00").toLocaleDateString(LANG, { weekday: "short" }); }
+      catch (_) { return ""; }
+    }
+    async function refreshWeek() {
+      try { weekState = await api("/api/week"); renderWeek(); }
+      catch (err) { $("week-summaries").innerHTML = `<div class="empty">${t("chat.error")}${escapeHTML(err.message)}</div>`; }
+    }
+    function renderWeek() {
+      const w = weekState;
+      if (!w) return;
+      $("week-plan-title").textContent = `${t("card.weekPlan")} · ${w.weekStart}`;
+      if (document.activeElement !== $("week-plan")) $("week-plan").value = w.plan || "";
+
+      const sums = [...w.summaries].sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      $("week-summaries").innerHTML = sums.length
+        ? sums.map((s) => `<div class="summary"><div class="when">${fmtTime(s.ts)} · ${escapeHTML(s.model || t("summaries.noModel"))}</div><div class="markdown">${mdLite(s.text)}</div></div>`).join("")
+        : `<div class="empty">${t("week.recapEmpty")}</div>`;
+
+      const st = w.stats;
+      $("week-totals").innerHTML =
+        `<span>${t("week.tracked", { dur: fmtDuration(st.trackedMs) })}</span>` +
+        `<span>${t("totals.notes", { n: st.noteCount })}</span>` +
+        `<span>${t("totals.tasks", { n: st.taskCount })}</span>`;
+
+      const todayDate = state ? state.date : null;
+      $("week-grid").innerHTML = st.days.map((d) => `
+        <div class="daycell ${d.date === todayDate ? "today" : ""}">
+          <div class="d">${escapeHTML(weekdayLabel(d.date))} ${d.date.slice(5)}</div>
+          <div>${d.trackedMs ? fmtDuration(d.trackedMs) : "—"}</div>
+          ${d.topApp ? `<div style="color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(d.topApp)}">${escapeHTML(d.topApp)}</div>` : ""}
+          ${(d.notes || d.hasPlan) ? `<div style="color:var(--muted)">${[d.notes ? t("week.notesShort", { n: d.notes }) : "", d.hasPlan ? t("week.hasPlan") : ""].filter(Boolean).join(" · ")}</div>` : ""}
+        </div>`).join("");
+
+      if (st.topApps.length) {
+        const max = st.topApps[0].durationMs || 1;
+        $("week-apps").innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${t("week.appsLabel")}</div>` +
+          st.topApps.map((a) => `
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:5px;">
+              <div style="flex:0 0 130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHTML(a.name)}">${escapeHTML(a.name)}</div>
+              <div style="flex:1;background:#f0ece6;border-radius:4px;height:7px;overflow:hidden;"><div style="width:${Math.max(3, Math.round(a.durationMs / max * 100))}%;height:100%;background:var(--accent);opacity:0.7;"></div></div>
+              <div style="color:var(--muted);font-variant-numeric:tabular-nums;">${fmtDuration(a.durationMs)}</div>
+            </div>`).join("");
+      } else $("week-apps").innerHTML = "";
+    }
+    $("week-plan-save").onclick = async () => {
+      try {
+        await api("/api/week/plan", { method: "POST", body: { text: $("week-plan").value } });
+        toast(t("toast.weekPlanSaved"));
+      } catch (err) { toast(t("toast.errPrefix") + err.message); }
+    };
+    $("week-plan-draft").onclick = () => draftPlan("week-plan", "week-plan-hint", "plan.weekDraftQ");
+    $("week-summarize").onclick = async () => {
+      const btn = $("week-summarize");
+      btn.disabled = true; btn.textContent = t("note.summarizing");
+      try { await api("/api/week/summarize", { method: "POST", body: { lang: LANG } }); await refreshWeek(); toast(t("toast.weekSummaryDone")); }
+      catch (err) { toast(t("toast.errPrefix") + err.message); }
+      finally { btn.disabled = false; btn.textContent = t("week.generate"); }
+    };
 
     // Wire up
     $("entry-save").onclick = saveEntry;

@@ -30,8 +30,14 @@ import {
   saveScreenshotFile,
   loadActivities,
   todayString,
+  setDayPlan,
+  weekStartString,
+  loadWeek,
+  setWeekPlan,
+  addWeekSummary,
+  loadWeekDays,
 } from "./storage.js";
-import { summarize, ask } from "./summarizer.js";
+import { summarize, ask, summarizeWeek } from "./summarizer.js";
 import { startScheduler } from "./scheduler.js";
 import { startTracking, toggleTracking, setEnabled, getStatus } from "./tracker.js";
 
@@ -211,6 +217,101 @@ app.post("/api/summarize", async (req, res) => {
     const day = await loadDay(todayString(), req.workspace);
     const { text, model } = await summarize(day, slot, lang);
     const saved = await addSummary(todayString(), { slot, text, model }, req.workspace);
+    res.json(saved);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Daily plan (plan ahead) ---
+app.post("/api/day/plan", async (req, res) => {
+  try {
+    const { text } = req.body || {};
+    const plan = await setDayPlan(todayString(), text, req.workspace);
+    res.json({ plan });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// --- Weekly: plan + recap + aggregated stats ---
+function dayTracked(day) {
+  return ((day.activities || {}).apps || []).reduce((s, a) => s + (a.durationMs || 0), 0);
+}
+
+app.get("/api/week", async (req, res) => {
+  try {
+    const weekStart = weekStartString();
+    const [week, days] = await Promise.all([
+      loadWeek(weekStart, req.workspace),
+      loadWeekDays(weekStart, req.workspace),
+    ]);
+
+    // Aggregate week stats.
+    const appTotals = new Map();
+    let trackedMs = 0;
+    let noteCount = 0;
+    let taskCount = 0;
+    const dayBriefs = days.map((d) => {
+      const t = dayTracked(d);
+      trackedMs += t;
+      noteCount += d.entries.length;
+      taskCount += d.tasks.length;
+      for (const a of (d.activities || {}).apps || []) {
+        const k = a.name || a.bundleId || "Unknown";
+        appTotals.set(k, (appTotals.get(k) || 0) + (a.durationMs || 0));
+      }
+      const top = [...((d.activities || {}).apps || [])].reduce((m, a) => {
+        const k = a.name || a.bundleId;
+        m.set(k, (m.get(k) || 0) + (a.durationMs || 0));
+        return m;
+      }, new Map());
+      const topApp = [...top.entries()].sort((a, b) => b[1] - a[1])[0];
+      return {
+        date: d.date,
+        trackedMs: t,
+        topApp: topApp ? topApp[0] : null,
+        notes: d.entries.length,
+        tasks: d.tasks.length,
+        hasPlan: Boolean(d.plan && d.plan.trim()),
+      };
+    });
+    const topApps = [...appTotals.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, durationMs]) => ({ name, durationMs }));
+
+    res.json({
+      weekStart,
+      plan: week.plan,
+      summaries: week.summaries,
+      stats: { trackedMs, noteCount, taskCount, topApps, days: dayBriefs },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/plan", async (req, res) => {
+  try {
+    const { text } = req.body || {};
+    const plan = await setWeekPlan(weekStartString(), text, req.workspace);
+    res.json({ plan });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post("/api/week/summarize", async (req, res) => {
+  try {
+    if (aiRateLimited(req.workspace)) {
+      return res.status(429).json({ error: "Rate limit reached. Try again in a bit." });
+    }
+    const lang = (req.body && req.body.lang) || "en";
+    const weekStart = weekStartString();
+    const days = await loadWeekDays(weekStart, req.workspace);
+    const { text, model } = await summarizeWeek(days, weekStart, lang);
+    const saved = await addWeekSummary(weekStart, { text, model }, req.workspace);
     res.json(saved);
   } catch (err) {
     res.status(500).json({ error: err.message });

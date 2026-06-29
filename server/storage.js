@@ -63,6 +63,7 @@ async function ensureDir(ws) {
 function emptyDay(date) {
   return {
     date,
+    plan: "",
     entries: [],
     tasks: [],
     summaries: [],
@@ -232,4 +233,73 @@ export async function saveScreenshotFile(date, filename, buffer, ws = "") {
 export async function loadActivities(date, ws = "") {
   const day = await loadDay(date, ws);
   return day.activities;
+}
+
+// --- Daily plan (what you intend to do today) ---
+export async function setDayPlan(date, text, ws = "") {
+  const day = await loadDay(date, ws);
+  day.plan = String(text == null ? "" : text);
+  await saveDay(day, ws);
+  return day.plan;
+}
+
+// --- Weekly: plan + summaries live in a per-week file keyed by the Monday. ---
+export function weekStartString(now = new Date()) {
+  const d = new Date(now);
+  const dow = (d.getDay() + 6) % 7; // 0 = Monday … 6 = Sunday
+  d.setDate(d.getDate() - dow);
+  return todayString(d);
+}
+
+function weekPath(weekStart, ws) {
+  return path.join(wsDir(ws), `week-${weekStart}.json`);
+}
+
+function emptyWeek(weekStart) {
+  return { weekStart, plan: "", summaries: [] };
+}
+
+export async function loadWeek(weekStart, ws = "") {
+  await ensureDir(ws);
+  try {
+    const raw = await fs.readFile(weekPath(weekStart, ws), "utf8");
+    return { ...emptyWeek(weekStart), ...JSON.parse(raw) };
+  } catch (err) {
+    if (err.code === "ENOENT") return emptyWeek(weekStart);
+    throw err;
+  }
+}
+
+async function saveWeek(week, ws = "") {
+  await ensureDir(ws);
+  const tmp = weekPath(week.weekStart, ws) + ".tmp";
+  await fs.writeFile(tmp, JSON.stringify(week, null, 2), "utf8");
+  await fs.rename(tmp, weekPath(week.weekStart, ws));
+}
+
+export async function setWeekPlan(weekStart, text, ws = "") {
+  const week = await loadWeek(weekStart, ws);
+  week.plan = String(text == null ? "" : text);
+  await saveWeek(week, ws);
+  return week.plan;
+}
+
+export async function addWeekSummary(weekStart, { text, model }, ws = "") {
+  const week = await loadWeek(weekStart, ws);
+  const summary = { id: newId(), ts: new Date().toISOString(), text, model: model || null };
+  week.summaries.push(summary);
+  await saveWeek(week, ws);
+  return summary;
+}
+
+// Load the 7 day-files (Mon→Sun) for a week. Missing days come back empty.
+export async function loadWeekDays(weekStart, ws = "") {
+  const start = new Date(weekStart + "T00:00:00");
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    days.push(await loadDay(todayString(d), ws));
+  }
+  return days;
 }
